@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Esteban Garcia Taquez - About</title>
+    
+    <!-- Tailwind CSS (Loaded via style.css) -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- ADD THIS SCRIPT for the Tailwind CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Inter Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-white text-gray-900 overflow-x-hidden">
+
+    <!-- 
+      HEADER
+      This must be on EVERY page for Barba.js to work seamlessly.
+    -->
+    <header id="main-header" class="fixed top-0 left-0 w-full bg-white bg-opacity-90 backdrop-blur-md shadow-sm z-50 opacity-100"> <!-- Opacity is 100% since it's not animated on page load -->
+        <nav class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
+            <!-- Logo/Name -->
+            <a href="index.html" class="text-xl font-bold text-gray-900 hover:text-indigo-600 transition-colors">Esteban Garcia Taquez</a>
+            
+            <!-- Desktop Nav Links -->
+            <div class="hidden md:flex space-x-8">
+                <a href="index.html" class="text-gray-600 hover:text-indigo-600 transition-colors">Home</a>
+                <a href="about.html" class="text-gray-600 hover:text-indigo-600 transition-colors">About</a>
+                <a href="contact.html" class="text-gray-600 hover:text-indigo-600 transition-colors">Contact</a>
+            </div>
+            
+            <!-- Mobile Menu Button -->
+            <button class="md:hidden text-gray-900">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                </svg>
+            </button>
+        </nav>
+    </header>
+
+    <!-- 
+      BARBA WRAPPER
+    -->
+    <main id="main-content" class="pt-16" data-barba="wrapper">
+
+        <!-- 
+          BARBA CONTAINER
+          This is the "About" page content.
+        -->
+        <section data-barba="container" data-barba-namespace="about">
+            <div class="max-w-6xl mx-auto px-6 py-24">
+                <h1 class="text-4xl md:text-6xl font-bold tracking-tighter mb-8 text-center">About Me</h1>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
+                    <div class="md:col-span-2">
+                        <p class="text-lg text-gray-600 leading-relaxed mb-6">
+                            Hi, I'm Esteban Garcia Taquez. For the past 5 years, I've been honing my skills in front-end development, with a special passion for motion design. I believe a website shouldn't just be static; it should be an experience.
+                        </p>
+                        <p class="text-lg text-gray-600 leading-relaxed">
+                            My toolkit includes modern HTML, CSS, and JavaScript, and I specialize in bringing sites to life with GSAP. When I'm not coding, I'm probably hiking or looking for the best coffee in town.
+                        </p>
+                    </div>
+                    <div class="bg-gray-50 p-6 rounded-lg shadow-md">
+                        <h3 class="text-xl font-bold mb-4">Core Skills</h3>
+                        <ul class="space-y-2">
+                            <li class="font-semibold">HTML5 & CSS3</li>
+                            <li class="font-semibold">JavaScript (ES6+)</li>
+                            <li class="font-semibold">Tailwind CSS</li>
+                            <li class="font-semibold">GSAP</li>
+                            <li class="font-semibold">ScrollTrigger</li>
+                            <li class="font-semibold">React</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- 
+      FOOTER
+      This must also be on EVERY page.
+    -->
+    <footer class="bg-gray-900 text-gray-400">
+        <div class="max-w-6xl mx-auto px-6 py-12 text-center">
+            <p>&copy; 2025 Esteban Garcia Taquez. All rights reserved.</p>
+        </div>
+    </footer>
+
+
+    <!-- ============================================= -->
+    <!-- JAVASCRIPT LIBRARIES -->
+    <!-- ============================================= -->
+    
+    <!-- GSAP (Core) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <!-- GSAP ScrollTrigger Plugin -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    <!-- Barba.js (for page transitions) -->
+    <script src="https://unpkg.com/@barba/core"></script>
+    
+    <!-- Your Custom App Logic -->
+    <script src="app.js"></script>
+
+</body>
+</html>

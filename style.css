@@ -1,0 +1,26 @@
+/* --- Base Font --- */
+body {
+    font-family: 'Inter', sans-serif;
+}
+
+/* --- Barba.js Transition Classes --- 
+  These are helper classes that Barba.js can add.
+  We can use them for simple CSS transitions, but
+  we will use GSAP for more control.
+  
+  It's still good practice to set the base opacity.
+*/
+.barba-leave-active,
+.barba-enter-active {
+  transition: opacity 0.5s ease;
+}
+
+.barba-leave-from,
+.barba-enter-to {
+  opacity: 1;
+}
+
+.barba-leave-to,
+.barba-enter-from {
+  opacity: 0;
+}
