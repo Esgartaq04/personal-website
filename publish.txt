@@ -1,1 +1,473 @@
-push to prod
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>./root_access_granted</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <!-- GSAP -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <!-- EmailJS -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+
+    <!-- 
+        =========================================
+        FILE: styles.css
+        (In a real setup, move the <style> content below to styles.css)
+        =========================================
+    -->
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --term-green: #00ff41;
+            --term-dim: #008F11;
+            --term-alert: #ff3333;
+            --font-stack: 'Fira Code', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--term-green);
+            font-family: var(--font-stack);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            position: relative;
+        }
+
+        /* CRT Scanline Effect */
+        body::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 999;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+
+        /* Hacker Overlay for Transitions */
+        #hack-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: black;
+            z-index: 9000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+        
+        .hack-text {
+            font-family: 'Fira Code', monospace;
+            color: var(--term-green);
+            font-size: 14px;
+            width: 90%;
+            word-break: break-all;
+            opacity: 0.8;
+            text-shadow: 0 0 5px var(--term-green);
+        }
+
+        .access-denied {
+            color: var(--term-alert);
+            font-size: 2rem;
+            font-weight: bold;
+            display: none;
+        }
+
+        .access-granted {
+            color: var(--term-green);
+            font-size: 2rem;
+            font-weight: bold;
+            display: none;
+        }
+
+        /* Layout */
+        .terminal-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 10;
+        }
+
+        header {
+            border-bottom: 1px solid var(--term-dim);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .brand { font-weight: 700; letter-spacing: -1px; }
+
+        nav ul { display: flex; gap: 20px; list-style: none; }
+        nav li { cursor: pointer; position: relative; }
+        nav li::before {
+            content: '>'; opacity: 0; margin-right: 5px;
+            color: var(--term-dim); transition: opacity 0.3s;
+        }
+        nav li:hover::before, nav li.active::before { opacity: 1; color: var(--term-green); }
+        nav li.active { text-decoration: underline; }
+
+        main { flex: 1; position: relative; overflow: hidden; }
+
+        .page {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            opacity: 0; visibility: hidden; overflow-y: auto; padding-right: 10px;
+        }
+        .page.active { opacity: 1; visibility: visible; z-index: 5; }
+
+        /* Scrollbar */
+        .page::-webkit-scrollbar { width: 8px; }
+        .page::-webkit-scrollbar-track { background: var(--bg-color); }
+        .page::-webkit-scrollbar-thumb { background: var(--term-dim); border: 1px solid var(--term-green); }
+
+        /* Elements */
+        h1, h2, h3 { margin-bottom: 1rem; text-transform: uppercase; }
+        p { margin-bottom: 1.5rem; line-height: 1.6; max-width: 800px; color: #b3ffcc; }
+        
+        a { color: var(--term-green); text-decoration: none; border-bottom: 1px dashed var(--term-dim); }
+        a:hover { background: var(--term-green); color: var(--bg-color); }
+
+        /* Buttons & Inputs */
+        .btn-hack {
+            background: transparent;
+            border: 1px solid var(--term-green);
+            color: var(--term-green);
+            padding: 10px 20px;
+            cursor: pointer;
+            font-family: var(--font-stack);
+            text-transform: uppercase;
+            font-weight: bold;
+            transition: 0.2s;
+            margin-top: 10px;
+            display: inline-block;
+        }
+        .btn-hack:hover {
+            background: var(--term-green);
+            color: var(--bg-color);
+            box-shadow: 0 0 15px var(--term-dim);
+        }
+
+        /* Forms */
+        form { display: flex; flex-direction: column; gap: 15px; max-width: 500px; }
+        .input-group { display: flex; flex-direction: column; }
+        label { font-size: 0.8rem; margin-bottom: 5px; color: var(--term-dim); }
+        input, textarea {
+            background: transparent; border: 1px solid var(--term-dim);
+            color: var(--term-green); padding: 10px; font-family: var(--font-stack); font-size: 1rem;
+        }
+        input:focus, textarea:focus {
+            outline: none; border-color: var(--term-green); box-shadow: 0 0 5px var(--term-dim);
+        }
+
+        /* Project Grid */
+        .project-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px; margin-top: 20px;
+        }
+        .project-card {
+            border: 1px solid var(--term-dim); padding: 15px;
+            transition: all 0.3s; background: rgba(0, 255, 65, 0.02);
+        }
+        .project-card:hover {
+            border-color: var(--term-green); box-shadow: 0 0 10px var(--term-dim); transform: translateY(-2px);
+        }
+        .tech-stack { font-size: 0.8rem; color: var(--term-dim); margin-top: 10px; }
+
+        /* Misc */
+        .cursor { display: inline-block; width: 10px; height: 2rem; background: var(--term-green); animation: blink 1s infinite; vertical-align: middle; }
+        .hero-text { font-size: 2rem; margin-top: 10vh; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+        
+        @media (max-width: 768px) {
+            .hero-text { font-size: 1.5rem; }
+            nav ul { gap: 10px; font-size: 0.9rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Transition Overlay -->
+    <div id="hack-overlay">
+        <div class="hack-text" id="matrix-text"></div>
+        <div class="access-granted" id="access-msg">ACCESS GRANTED</div>
+    </div>
+
+    <div class="terminal-container">
+        <header>
+            <div class="brand">root@portfolio:~$</div>
+            <nav>
+                <ul>
+                    <li data-target="home" class="nav-link active">/home</li>
+                    <li data-target="about" class="nav-link">/about</li>
+                    <li data-target="projects" class="nav-link">/projects</li>
+                    <li data-target="contact" class="nav-link">/contact</li>
+                </ul>
+            </nav>
+        </header>
+
+        <main>
+            <!-- HOME -->
+            <section id="home" class="page active">
+                <div class="hero-text">
+                    <div>> Initiating Handshake...</div>
+                    <div style="margin-top:10px;">> Subject: <span style="color:white; font-weight:600;">[Your Name]</span></div>
+                    <div style="margin-top:10px;">> Role: Full Stack Operator</div>
+                    <div style="margin-top:20px;">> <span id="typewriter"></span><span class="cursor"></span></div>
+                </div>
+                <div style="margin-top: 50px; color: var(--term-dim);">
+                    <p>Target Acquired. Navigation Enabled.</p>
+                </div>
+            </section>
+
+            <!-- ABOUT -->
+            <section id="about" class="page">
+                <h2>/var/www/about_me.txt</h2>
+                <div class="content-block">
+                    <p>> IDENTITY CONFIRMED.</p>
+                    <p>I build secure, scalable applications. My environment is the terminal, my editor is my weapon, and clean code is my mission.</p>
+                    
+                    <h3 style="margin-top:30px;">Capabilities:</h3>
+                    <ul style="list-style: none; display: flex; flex-wrap: wrap; gap: 20px;">
+                        <li>[*] JavaScript / TypeScript</li>
+                        <li>[*] React / Next.js</li>
+                        <li>[*] Node.js / Express</li>
+                        <li>[*] Pentesting / SecOps</li>
+                        <li>[*] Linux Administration</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- PROJECTS -->
+            <section id="projects" class="page">
+                <h2>/home/user/deployments/</h2>
+                <div class="project-grid">
+                    <div class="project-card">
+                        <h3>Brute_Force_Viz</h3>
+                        <p>Visualizing algorithm efficiency in password cracking.</p>
+                        <div class="tech-stack">[Python] [React] [D3.js]</div>
+                        <a href="#">./run_script</a>
+                    </div>
+                    <div class="project-card">
+                        <h3>Zero_Trust_Auth</h3>
+                        <p>JWT authentication system with refresh token rotation.</p>
+                        <div class="tech-stack">[Node] [Redis] [Docker]</div>
+                        <a href="#">./inspect_headers</a>
+                    </div>
+                    <div class="project-card">
+                        <h3>Steganography_Tool</h3>
+                        <p>Hide text data inside PNG image structures.</p>
+                        <div class="tech-stack">[Rust] [WASM]</div>
+                        <a href="#">./decode</a>
+                    </div>
+                </div>
+            </section>
+
+            <!-- CONTACT -->
+            <section id="contact" class="page">
+                <h2>/etc/contact_protocols.conf</h2>
+                
+                <!-- Resume Download -->
+                <div style="margin-bottom: 30px; padding: 20px; border: 1px dashed var(--term-dim);">
+                    <p>> USER_PROFILE detected. Download credentials?</p>
+                    <!-- Replace href with your actual PDF path -->
+                    <a href="/assets/resume.pdf" download="My_Resume.pdf" class="btn-hack">
+                        [ DOWNLOAD_RESUME.bat ]
+                    </a>
+                </div>
+
+                <p>> Or establish direct link:</p>
+                
+                <form id="contact-form">
+                    <div class="input-group">
+                        <label for="user_name">root@user:~$ name</label>
+                        <input type="text" name="user_name" id="user_name" autocomplete="off" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="user_email">root@user:~$ email</label>
+                        <input type="email" name="user_email" id="user_email" autocomplete="off" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="message">root@user:~$ message</label>
+                        <textarea name="message" id="message" rows="5" required></textarea>
+                    </div>
+                    <button type="submit" class="btn-hack" id="submit-btn">EXECUTE_SEND</button>
+                    <div class="status-message" id="status-msg"></div>
+                </form>
+            </section>
+        </main>
+    </div>
+
+    <!-- 
+        =========================================
+        FILE: script.js
+        (In a real setup, move the <script> content below to script.js)
+        =========================================
+    -->
+    <script>
+        // --- Env Var Loader (Simulated for Browser) ---
+        // In a real Webpack/Vite setup, you would use process.env.REACT_APP_KEY
+        // For this file, we define them here. replace strings with your keys.
+        const ENV = {
+            EMAILJS_PUBLIC_KEY: "YOUR_PUBLIC_KEY",
+            EMAILJS_SERVICE_ID: "YOUR_SERVICE_ID",
+            EMAILJS_TEMPLATE_ID: "YOUR_TEMPLATE_ID"
+        };
+
+        document.addEventListener("DOMContentLoaded", () => {
+            
+            // 1. Initialize EmailJS
+            emailjs.init(ENV.EMAILJS_PUBLIC_KEY);
+
+            // 2. Typewriter for Home
+            function startTypewriter() {
+                const text = "Penetrating firewalls... access gained.";
+                const target = document.getElementById('typewriter');
+                if(!target) return;
+                target.innerHTML = "";
+                let i = 0;
+                function type() {
+                    if (i < text.length) {
+                        target.innerHTML += text.charAt(i);
+                        i++;
+                        setTimeout(type, Math.random() * 50 + 50);
+                    }
+                }
+                type();
+            }
+            startTypewriter();
+
+            // 3. HACKER TRANSITION LOGIC
+            const navLinks = document.querySelectorAll('.nav-link');
+            const overlay = document.getElementById('hack-overlay');
+            const matrixText = document.getElementById('matrix-text');
+            const accessMsg = document.getElementById('access-msg');
+            let currentPage = 'home';
+
+            // Random chars for matrix effect
+            const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()_+-=[]{}|;':,./<>?";
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    const targetId = link.getAttribute('data-target');
+                    if (targetId === currentPage) return;
+                    
+                    // Update Nav UI
+                    navLinks.forEach(l => l.classList.remove('active'));
+                    link.classList.add('active');
+
+                    // Execute Hack Transition
+                    runHackTransition(currentPage, targetId);
+                    currentPage = targetId;
+                });
+            });
+
+            function runHackTransition(fromId, toId) {
+                const fromPage = document.getElementById(fromId);
+                const toPage = document.getElementById(toId);
+
+                // GSAP Timeline
+                const tl = gsap.timeline();
+
+                // 1. Activate Overlay
+                tl.set(overlay, { display: 'flex', pointerEvents: 'all' })
+                  .to(overlay, { opacity: 1, duration: 0.1 });
+
+                // 2. Run Matrix Text Loop
+                let interval;
+                tl.call(() => {
+                    let counter = 0;
+                    interval = setInterval(() => {
+                        // Generate 10 lines of random junk code
+                        let output = "";
+                        for(let i=0; i<15; i++) {
+                            let line = "";
+                            for(let j=0; j<40; j++) {
+                                line += chars.charAt(Math.floor(Math.random() * chars.length));
+                            }
+                            output += `> ${line} <br>`;
+                        }
+                        matrixText.innerHTML = output;
+                        counter++;
+                    }, 50);
+                });
+
+                // 3. Wait 1 second (simulating brute force)
+                tl.to({}, { duration: 0.8 });
+
+                // 4. Stop Matrix, Show "Access Granted"
+                tl.call(() => {
+                    clearInterval(interval);
+                    matrixText.innerHTML = "";
+                    accessMsg.style.display = "block";
+                });
+
+                // 5. Flash Access Granted
+                tl.fromTo(accessMsg, { opacity: 0 }, { opacity: 1, duration: 0.2, yoyo: true, repeat: 3 });
+
+                // 6. Switch Page Content (Behind the scenes)
+                tl.call(() => {
+                    fromPage.classList.remove('active');
+                    toPage.classList.add('active');
+                    
+                    // If going home, restart typewriter
+                    if(toId === 'home') startTypewriter();
+                });
+
+                // 7. Fade out overlay
+                tl.to(overlay, { 
+                    opacity: 0, 
+                    duration: 0.5, 
+                    onComplete: () => {
+                        overlay.style.display = 'none';
+                        accessMsg.style.display = 'none';
+                        overlay.style.pointerEvents = 'none';
+                    }
+                });
+            }
+
+            // 4. Contact Form Logic
+            const contactForm = document.getElementById('contact-form');
+            if(contactForm) {
+                contactForm.addEventListener('submit', function(event) {
+                    event.preventDefault();
+                    const btn = document.getElementById('submit-btn');
+                    const originalText = btn.innerText;
+                    btn.innerText = "UPLOADING_PACKET...";
+                    
+                    emailjs.sendForm(ENV.EMAILJS_SERVICE_ID, ENV.EMAILJS_TEMPLATE_ID, this)
+                        .then(() => {
+                            document.getElementById('status-msg').innerText = "> UPLOAD COMPLETE.";
+                            btn.innerText = originalText;
+                            contactForm.reset();
+                        }, (err) => {
+                            document.getElementById('status-msg').innerText = "> ERROR: FIREWALL BLOCK.";
+                            console.error(err);
+                            btn.innerText = "RETRY";
+                        });
+                });
+            }
+        });
+    </script>
+</body>
+</html>
