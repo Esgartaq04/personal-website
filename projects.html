@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>./home</title>
+    <title>./projects</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;600&display=swap" rel="stylesheet">
@@ -23,24 +23,36 @@
             <div class="brand">root@portfolio:~$</div>
             <nav>
                 <ul>
-                    <li><a href="index.html" class="nav-link active">/home</a></li>
+                    <li><a href="index.html" class="nav-link">/home</a></li>
                     <li><a href="about.html" class="nav-link">/about</a></li>
-                    <li><a href="projects.html" class="nav-link">/projects</a></li>
+                    <li><a href="projects.html" class="nav-link active">/projects</a></li>
                     <li><a href="contact.html" class="nav-link">/contact</a></li>
                 </ul>
             </nav>
         </header>
 
         <main>
-            <section id="home">
-                <div class="hero-text">
-                    <div>> Initiating Handshake...</div>
-                    <div style="margin-top:10px;">> Subject: <span style="color:white; font-weight:600;">[Your Name]</span></div>
-                    <div style="margin-top:10px;">> Role: Full Stack Operator</div>
-                    <div style="margin-top:20px;">> <span id="typewriter"></span><span class="cursor"></span></div>
-                </div>
-                <div style="margin-top: 50px; color: var(--term-dim);">
-                    <p>Target Acquired. Navigation Enabled.</p>
+            <section id="projects">
+                <h2>/home/user/deployments/</h2>
+                <div class="project-grid">
+                    <div class="project-card">
+                        <h3>Brute_Force_Viz</h3>
+                        <p>Visualizing algorithm efficiency in password cracking.</p>
+                        <div class="tech-stack">[Python] [React] [D3.js]</div>
+                        <a href="#">./run_script</a>
+                    </div>
+                    <div class="project-card">
+                        <h3>Zero_Trust_Auth</h3>
+                        <p>JWT authentication system with refresh token rotation.</p>
+                        <div class="tech-stack">[Node] [Redis] [Docker]</div>
+                        <a href="#">./inspect_headers</a>
+                    </div>
+                    <div class="project-card">
+                        <h3>Steganography_Tool</h3>
+                        <p>Hide text data inside PNG image structures.</p>
+                        <div class="tech-stack">[Rust] [WASM]</div>
+                        <a href="#">./decode</a>
+                    </div>
                 </div>
             </section>
         </main>

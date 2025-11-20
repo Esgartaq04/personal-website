@@ -1,120 +1,68 @@
 <!DOCTYPE html>
-<html lang="en" class="scroll-smooth">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Esteban Garcia Taquez - Contact</title>
-    
-    <!-- Tailwind CSS (Loaded via style.css) -->
-    <link rel="stylesheet" href="style.css">
-    
-    <!-- ADD THIS SCRIPT for the Tailwind CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Inter Font -->
+    <title>./contact</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <script src="script.js" defer></script>
 </head>
-<body class="bg-white text-gray-900 overflow-x-hidden">
+<body>
+    <div id="hack-overlay">
+        <div class="hack-text" id="matrix-text"></div>
+        <div class="access-granted" id="access-msg">ACCESS GRANTED</div>
+    </div>
 
-    <!-- 
-      HEADER
-      This must be on EVERY page for Barba.js to work seamlessly.
-    -->
-    <header id="main-header" class="fixed top-0 left-0 w-full bg-white bg-opacity-90 backdrop-blur-md shadow-sm z-50 opacity-100"> <!-- Opacity is 100% since it's not animated on page load -->
-        <nav class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
-            <!-- Logo/Name -->
-            <a href="index.html" class="text-xl font-bold text-gray-900 hover:text-indigo-600 transition-colors">Esteban Garcia Taquez</a>
-            
-            <!-- Desktop Nav Links -->
-            <div class="hidden md:flex space-x-8">
-                <a href="index.html" class="text-gray-600 hover:text-indigo-600 transition-colors">Home</a>
-                <a href="about.html" class="text-gray-600 hover:text-indigo-600 transition-colors">About</a>
-                <a href="contact.html" class="text-gray-600 hover:text-indigo-600 transition-colors">Contact</a>
-            </div>
-            
-            <!-- Mobile Menu Button -->
-            <button class="md:hidden text-gray-900">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-                </svg>
-            </button>
-        </nav>
-    </header>
+    <div class="terminal-container">
+        <header>
+            <div class="brand">root@portfolio:~$</div>
+            <nav>
+                <ul>
+                    <li><a href="index.html" class="nav-link">/home</a></li>
+                    <li><a href="about.html" class="nav-link">/about</a></li>
+                    <li><a href="projects.html" class="nav-link">/projects</a></li>
+                    <li><a href="contact.html" class="nav-link active">/contact</a></li>
+                </ul>
+            </nav>
+        </header>
 
-    <!-- 
-      BARBA WRAPPER
-    -->
-    <main id="main-content" class="pt-16" data-barba="wrapper">
-
-        <!-- 
-          BARBA CONTAINER
-          This is the "Contact" page content.
-        -->
-        <section data-barba="container" data-barba-namespace="contact">
-            <div class="max-w-3xl mx-auto px-6 py-24 text-center">
-                <h1 class="text-4xl md:text-6xl font-bold tracking-tighter mb-8">Let's Talk</h1>
-                <p class="text-lg text-gray-600 mb-12">
-                    Have a project in mind or just want to say hi? Fill out the form below, and I'll get back to you as soon as possible.
-                </p>
+        <main>
+            <section id="contact">
+                <h2>/etc/contact_protocols.conf</h2>
                 
-                <!-- 
-                  CONTACT FORM
-                  Replace "YOUR_FORM_ID" with your own Formspree.io endpoint.
-                -->
-                <form action="https://formspree.io/f/YOUR_FORM_ID" method="POST" class="text-left space-y-6">
-                    <div>
-                        <label for="name" class="block text-sm font-semibold text-gray-700">Name</label>
-                        <input type="text" id="name" name="name" required
-                               class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <!-- Resume Download -->
+                <div style="margin-bottom: 30px; padding: 20px; border: 1px dashed var(--term-dim);">
+                    <p>> USER_PROFILE detected. Download credentials?</p>
+                    <a href="/assets/resume.pdf" download="My_Resume.pdf" class="btn-hack">
+                        [ DOWNLOAD_RESUME.bat ]
+                    </a>
+                </div>
+
+                <p>> Or establish direct link:</p>
+                
+                <form id="contact-form">
+                    <div class="input-group">
+                        <label for="user_name">root@user:~$ name</label>
+                        <input type="text" name="user_name" id="user_name" autocomplete="off" required>
                     </div>
-                    <div>
-                        <label for="email" class="block text-sm font-semibold text-gray-700">Email</label>
-                        <input type="email" id="email" name="email" required
-                               class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <div class="input-group">
+                        <label for="user_email">root@user:~$ email</label>
+                        <input type="email" name="user_email" id="user_email" autocomplete="off" required>
                     </div>
-                    <div>
-                        <label for="message" class="block text-sm font-semibold text-gray-700">Message</label>
-                        <textarea id="message" name="message" rows="5" required
-                                  class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+                    <div class="input-group">
+                        <label for="message">root@user:~$ message</label>
+                        <textarea name="message" id="message" rows="5" required></textarea>
                     </div>
-                    <div class="text-center">
-                        <button type="submit"
-                                class="bg-indigo-600 text-white font-semibold px-10 py-3 rounded-lg shadow-md hover:bg-indigo-700 transition-all transform hover:scale-105">
-                            Send Message
-                        </button>
-                    </div>
+                    <button type="submit" class="btn-hack" id="submit-btn">EXECUTE_SEND</button>
+                    <div class="status-message" id="status-msg"></div>
                 </form>
-            </div>
-        </section>
-
-    </main>
-
-    <!-- 
-      FOOTER
-      This must also be on EVERY page.
-    -->
-    <footer class="bg-gray-900 text-gray-400">
-        <div class="max-w-6xl mx-auto px-6 py-12 text-center">
-            <p>&copy; 2025 Esteban Garcia Taquez. All rights reserved.</p>
-        </div>
-    </footer>
-
-
-    <!-- ============================================= -->
-    <!-- JAVASCRIPT LIBRARIES -->
-    <!-- ============================================= -->
-    
-    <!-- GSAP (Core) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-    <!-- GSAP ScrollTrigger Plugin -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
-    <!-- Barba.js (for page transitions) -->
-    <script src="https://unpkg.com/@barba/core"></script>
-    
-    <!-- Your Custom App Logic -->
-    <script src="app.js"></script>
-
+            </section>
+        </main>
+    </div>
 </body>
 </html>
