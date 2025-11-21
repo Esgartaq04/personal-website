@@ -16,21 +16,17 @@
       type="text/javascript"
       src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"
     ></script>
-
+    
+    <!-- LOAD CONFIG FIRST -->
     <script src="config.js"></script>
+    <!-- THEN LOAD LOGIC -->
     <script src="script.js" defer></script>
   </head>
   <body>
-    <!-- Standard Hack Overlay -->
+    <!-- Standard Hack Overlay (Global) -->
     <div id="hack-overlay">
       <div class="hack-text" id="matrix-text"></div>
       <div class="access-granted" id="access-msg">ACCESS GRANTED</div>
-    </div>
-
-    <!-- NEW: Success/Packet Sent Overlay -->
-    <div id="success-overlay" style="display: none;">
-        <img src="assets/hac_pepe.gif" alt="Hacker Pepe" class="success-gif">
-        <div class="success-text">PACKET SENT</div>
     </div>
 
     <div class="terminal-container">
@@ -47,6 +43,15 @@
       </header>
 
       <main>
+        <!-- 
+           MOVED OVERLAY INSIDE MAIN 
+           This ensures it gets loaded when navigating from other pages 
+        -->
+        <div id="success-overlay" style="display: none;">
+            <img src="assets/hac_pepe.gif" alt="Hacker Pepe" class="success-gif">
+            <div class="success-text">PACKET SENT</div>
+        </div>
+
         <section id="contact">
           <h2>/etc/contact_protocols.conf</h2>
 
@@ -107,6 +112,7 @@
           </form>
 
           <p>> Or connect via SSH (Social Shell Handlers):</p>
+          <p>--------------------------------------------------------------------</p>
           <div style="display: flex; gap: 20px">
             <a href="#">github.ssh</a>
             <a href="#">linkedin.ssh</a>
