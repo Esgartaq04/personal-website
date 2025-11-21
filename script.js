@@ -1,4 +1,4 @@
-// --- Configuration ---
+
 const ENV = {
   // Ideally, do not hardcode keys if pushing to public repo.
   // For local/demo use, this is fine.
