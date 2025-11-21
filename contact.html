@@ -16,17 +16,26 @@
       type="text/javascript"
       src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"
     ></script>
+
+    <script src="config.js"></script>
     <script src="script.js" defer></script>
   </head>
   <body>
+    <!-- Standard Hack Overlay -->
     <div id="hack-overlay">
       <div class="hack-text" id="matrix-text"></div>
       <div class="access-granted" id="access-msg">ACCESS GRANTED</div>
     </div>
 
+    <!-- NEW: Success/Packet Sent Overlay -->
+    <div id="success-overlay" style="display: none;">
+        <img src="assets/hac_pepe.gif" alt="Hacker Pepe" class="success-gif">
+        <div class="success-text">PACKET SENT</div>
+    </div>
+
     <div class="terminal-container">
       <header>
-        <div class="brand">(esteban@portfolio)-[~]</div>
+        <div class="brand">esteban_garcia_taquez@portfolio:~$</div>
         <nav>
           <ul>
             <li><a href="index.html" class="nav-link">/home</a></li>

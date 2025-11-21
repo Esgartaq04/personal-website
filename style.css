@@ -61,6 +61,39 @@ body::before {
   overflow: hidden;
 }
 
+/* NEW: Success Overlay Styles */
+#success-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(13, 17, 23, 0.95); /* Dark semi-transparent background */
+  z-index: 9500; /* Above everything else */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+}
+
+.success-gif {
+  max-width: 300px;
+  width: 80%;
+  border: 2px solid var(--term-green);
+  box-shadow: 0 0 20px var(--term-green);
+  border-radius: 4px;
+}
+
+.success-text {
+  font-size: 2rem;
+  font-weight: bold;
+  color: var(--term-green);
+  text-shadow: 0 0 10px var(--term-green);
+  animation: blink 1s infinite;
+  text-align: center;
+}
+
 .hack-text {
   font-family: "Fira Code", monospace;
   color: var(--term-green);
@@ -134,7 +167,7 @@ nav li a.active {
 main {
   flex: 1;
   position: relative;
-  overflow-y: auto; /* CHANGED: Allows scrolling for content */
+  overflow-y: auto; /* Allows scrolling for content */
   overflow-x: hidden;
   padding-right: 10px; /* Space for scrollbar */
 }
