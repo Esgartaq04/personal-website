@@ -1,4 +1,3 @@
-// --- Configuration ---
 const ENV = {
   EMAILJS_PUBLIC_KEY: "YOUR_PUBLIC_KEY",
   EMAILJS_SERVICE_ID: "YOUR_SERVICE_ID",
