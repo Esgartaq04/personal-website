@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>./experience</title>
+    <link rel="icon" type="image/png" href="assets/favicon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <script src="config.js"></script>
+    <script src="script.js" defer></script>
+    <script>
+        window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
+    </script>
+    <script defer src="/_vercel/speed-insights/script.js"></script>
+</head>
+<body>
+    <div id="hack-overlay">
+        <div class="hack-text" id="matrix-text"></div>
+        <div class="access-granted" id="access-msg">ACCESS GRANTED</div>
+    </div>
+
+    <div class="terminal-container">
+        <header>
+            <div class="brand">(esteban@portfolio)-[~]</div>
+            <nav>
+                <ul>
+                    <li><a href="index.html" class="nav-link">/home</a></li>
+                    <li><a href="about.html" class="nav-link">/about</a></li>
+                    <li><a href="experience.html" class="nav-link active">/experience</a></li>
+                    <li><a href="projects.html" class="nav-link">/projects</a></li>
+                    <li><a href="contact.html" class="nav-link">/contact</a></li>
+                </ul>
+            </nav>
+        </header>
+
+        <main>
+            <section id="experience">
+                <h2>/var/log/employment.log</h2>
+
+                <div class="exp-entry">
+                    <div class="exp-head">
+                        <span class="exp-role">Software Engineering Intern &mdash; Technology Intern Program</span>
+                        <span class="exp-date">Mar. 2026 &ndash; Aug. 2026</span>
+                    </div>
+                    <div class="exp-meta">Morningstar &middot; Chicago, IL</div>
+                    <ul>
+                        <li>Shipped a production self-service AI pipeline platform on AWS with configurable ingestion, extraction, and multi-provider LLM support over PDF/HTML, enabling 2,000+ non-technical analysts across 5 global offices to build custom RAG workflows on 1,000+ financial documents.</li>
+                        <li>Cut financial data-collection turnaround from a 5-week JSON build-and-test cycle to under a minute; adopted by 2 teams now extending the platform, and endorsed by senior leadership as the foundation for a document tagging and search tool.</li>
+                        <li>Reduced rule authoring from 2 weeks to 2 minutes on a production data-validation engine governing financial data quality, refactoring the Vue frontend to cut duplicate code and load times and shipping a guided wizard over FastAPI/MySQL endpoints validated by golden datasets.</li>
+                    </ul>
+                </div>
+
+                <div class="exp-entry">
+                    <div class="exp-head">
+                        <span class="exp-role">Software Engineering Intern</span>
+                        <span class="exp-date">May 2024 &ndash; Sep. 2024</span>
+                    </div>
+                    <div class="exp-meta">University of Illinois at Chicago &middot; Chicago, IL</div>
+                    <ul>
+                        <li>Built the Python dependency-analysis engine for an enterprise Policy as Code compliance framework, parsing formal GDPR rule definitions to map inter-rule dependencies and expose ordering constraints for automated regulatory verification.</li>
+                        <li>Translated GDPR regulatory language into formal, machine-checkable specifications and documented rule semantics for the tooling used to audit PII-handling software.</li>
+                    </ul>
+                </div>
+
+                <div class="exp-entry">
+                    <div class="exp-head">
+                        <span class="exp-role">Academic Tutor</span>
+                        <span class="exp-date">Sep. 2024 &ndash; Present</span>
+                    </div>
+                    <div class="exp-meta">University of Illinois at Chicago &middot; Chicago, IL</div>
+                    <ul>
+                        <li>Tutor 50+ students per semester across 4 semesters in algorithms and quantitative coursework: Computer Algorithms (MCS 401), Data Structures (CS 251), Systems Programming (CS 361), Cryptography (CS 488), Machine Organization (CS 261), CS 111/141/151, and Calculus I&ndash;III (MATH 180/181/210).</li>
+                    </ul>
+                </div>
+
+                <div class="exp-entry">
+                    <div class="exp-head">
+                        <span class="exp-role">Embedded Systems Team Member</span>
+                        <span class="exp-date">Jan. 2026 &ndash; Present</span>
+                    </div>
+                    <div class="exp-meta">UIC Lunabotics &middot; Chicago, IL</div>
+                    <ul>
+                        <li>Develop firmware and embedded control code for competition robot subsystems, debugging hardware/software integration across mechanical, electrical, and software subteams to improve operational reliability.</li>
+                    </ul>
+                </div>
+
+                <div class="subsection">
+                    <h2>/opt/leadership.d/</h2>
+
+                    <div class="exp-entry">
+                        <div class="exp-head">
+                            <span class="exp-role">Outreach Committee &amp; Web Development Committee</span>
+                            <span class="exp-date">Fall 2025 &ndash; Spring 2026</span>
+                        </div>
+                        <div class="exp-meta">Society of Hispanic Professional Engineers (SHPE) &middot; University of Illinois at Chicago</div>
+                        <ul>
+                            <li>Led high school visits teaching students about pathways into college and engineering.</li>
+                            <li>Ran school and corporate outreach for D&iacute;a de Ciencias and Equipando Padres, the chapter's flagship community events.</li>
+                            <li>Organized DDC x EP Spring 2026, a K&ndash;12 STEM and parent empowerment event hosted at Northwestern.</li>
+                            <li>Built a volunteer sign-up system using Google Forms and Apps Script.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="subsection">
+                    <h2>/etc/education.conf</h2>
+
+                    <div class="exp-entry">
+                        <div class="exp-head">
+                            <span class="exp-role">University of Illinois at Chicago</span>
+                            <span class="exp-date">Aug. 2023 &ndash; May 2027</span>
+                        </div>
+                        <div class="exp-meta">B.S. Computer Science, Concentration in Software Engineering &middot; Minor in Mathematics &middot; Chicago, IL</div>
+                        <p class="coursework">> Coursework: Computer Algorithms, Data Structures, Systems Programming, Probability &amp; Statistics, Cryptography, Applied Linear Algebra, Database Systems, Machine Organization, Data and AI</p>
+                    </div>
+
+                    <div class="exp-entry">
+                        <div class="exp-head">
+                            <span class="exp-role">DeVry University Advantage Academy</span>
+                            <span class="exp-date">Aug. 2021 &ndash; May 2023</span>
+                        </div>
+                        <div class="exp-meta">Associate in Business Administration, 4.0 GPA &mdash; earned concurrently with high school &middot; Chicago, IL</div>
+                        <p class="coursework">> Coursework: Financial Accounting, Budgeting &amp; Forecasting, Business Statistics, Operations Management, Business Ethics</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+</body>
+</html>
