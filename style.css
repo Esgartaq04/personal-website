@@ -305,6 +305,86 @@ textarea:focus {
   }
 }
 
+/* Experience & Education Entries */
+.exp-entry {
+  border-left: 2px solid var(--term-dim);
+  padding-left: 15px;
+  margin-bottom: 28px;
+  transition: border-color 0.3s;
+}
+.exp-entry:hover {
+  border-left-color: var(--term-green);
+}
+.exp-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.exp-role {
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.exp-date {
+  color: var(--term-dim);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+.exp-meta {
+  color: var(--term-dim);
+  font-size: 0.85rem;
+  font-style: italic;
+  margin-bottom: 10px;
+}
+.exp-entry ul {
+  list-style: none;
+}
+.exp-entry li {
+  color: #b3ffcc;
+  line-height: 1.6;
+  margin-bottom: 8px;
+  padding-left: 18px;
+  position: relative;
+  max-width: 900px;
+}
+.exp-entry li::before {
+  content: "\25B8";
+  position: absolute;
+  left: 0;
+  color: var(--term-dim);
+}
+.coursework {
+  color: var(--term-dim);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  max-width: 900px;
+}
+
+/* Section spacing on multi-section pages */
+.subsection {
+  margin-top: 45px;
+}
+
+/* Skill Rows */
+.skill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 10px;
+  margin-bottom: 14px;
+  align-items: baseline;
+}
+.skill-label {
+  font-weight: 600;
+  min-width: 195px;
+}
+.skill-list {
+  color: #b3ffcc;
+  flex: 1;
+  min-width: 240px;
+  line-height: 1.6;
+}
+
 @media (max-width: 768px) {
   .hero-text {
     font-size: 1.5rem;
@@ -312,5 +392,14 @@ textarea:focus {
   nav ul {
     gap: 10px;
     font-size: 0.9rem;
+    flex-wrap: wrap;
+  }
+  header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .skill-label {
+    min-width: 100%;
   }
 }
