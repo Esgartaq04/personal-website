@@ -2,3 +2,4 @@
 import './state.test.js'
 import './trail.test.js'
 import './vfs.test.js'
+import './core.test.js'
