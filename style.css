@@ -425,6 +425,62 @@ textarea:focus {
   }
 }
 
+/* Hidden Shell (/root) */
+.term {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 10px;
+  color: #b3ffcc;
+  line-height: 1.5;
+  cursor: text;
+}
+/* Author display rules such as .term-line's flex would otherwise beat the browser's [hidden] rule. */
+.term [hidden] {
+  display: none !important;
+}
+.term-out div {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.term-error {
+  color: var(--term-alert);
+}
+.term-screen {
+  margin: 0;
+  color: var(--term-green);
+  font-family: var(--font-stack);
+  line-height: 1.15;
+}
+.term-line {
+  display: flex;
+}
+/* Collapsed rather than hidden: a display:none input cannot hold focus, and Snake needs the keys. */
+.term-line-hidden {
+  opacity: 0;
+  height: 0;
+  overflow: hidden;
+}
+.term-prompt {
+  color: var(--term-green);
+  white-space: pre;
+}
+.term-in {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  padding: 0;
+  background: transparent;
+  color: #b3ffcc;
+  font-size: inherit;
+  line-height: inherit;
+  caret-color: var(--term-green);
+}
+.term-in:focus {
+  border: none;
+  box-shadow: none;
+}
+
 @media (max-width: 768px) {
   .hero-text {
     font-size: 1.5rem;

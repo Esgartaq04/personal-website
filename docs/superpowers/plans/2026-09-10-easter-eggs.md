@@ -2452,7 +2452,7 @@ function setPrompt(text) {
 function print(lines, className) {
   for (const line of lines) {
     const row = document.createElement('div')
-    row.textContent = line === '' ? ' ' : line // A non-breaking space keeps blank lines from collapsing.
+    row.textContent = line === '' ? '\u00a0' : line // A non-breaking space keeps blank lines from collapsing.
     if (className) row.className = className
     output.appendChild(row)
   }
