@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="robots" content="noindex">
+    <title>./tests</title>
+    <style>
+        body { background: #0d1117; color: #b3ffcc; font-family: "Fira Code", monospace; padding: 20px; }
+        pre { margin: 0; white-space: pre-wrap; }
+        .pass { color: #00ff41; }
+        .fail { color: #ff3333; }
+    </style>
+</head>
+<body>
+    <div id="results"></div>
+    <script type="module">
+        import { run } from './tests/harness.js'
+        import './tests/all.js'
+
+        const results = document.getElementById('results')
+        const { pass, fail } = await run((line, kind) => {
+            const row = document.createElement('pre')
+            row.className = kind
+            row.textContent = line
+            results.appendChild(row)
+        })
+        document.title = fail ? `FAIL (${fail})` : `PASS (${pass})`
+        window.__testResults = { pass, fail }
+    </script>
+</body>
+</html>
