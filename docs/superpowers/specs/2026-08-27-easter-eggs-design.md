@@ -1,0 +1,212 @@
+# Easter Egg Hunt and Hidden Shell — Design
+
+**Date:** 2026-08-27
+**Status:** Approved for planning. Revised 2026-09-10 during planning — see [Revisions](#revisions).
+**Repo:** `personal-website` (static site, no build step)
+
+## Goal
+
+Make the site rewarding to poke at. A five-fragment scavenger hunt hidden across the existing pages assembles into a passphrase that unlocks `/root`, an interactive fake shell containing a playable Snake.
+
+Success means a curious visitor discovers a hunt exists without being told, and a persistent one reaches a payoff worth the effort — a linkable URL that can be shown deliberately, not just stumbled into.
+
+## Non-goals
+
+- **This is not access control.** Anyone can read the source and skip the hunt. Obfuscation would buy nothing.
+- **No mobile parity.** Triggers are keyboard and mouse driven. On touch devices nothing fires and nothing teases.
+- **No build step, no dependencies.** The project is vanilla HTML/CSS/JS and stays that way.
+- **No second game.** The command registry makes one cheap to add later; this spec ships one.
+
+## Architecture
+
+**No existing JavaScript is modified.** New files:
+
+```
+eggs.js             Wires the trail to the page (DOM layer)         5 site pages + root.html
+hunt/state.js       Progress state, one localStorage key            pure
+hunt/trail.js       Fragments, passphrase, trigger rules, hints     pure
+shell.js            /root lock screen and REPL (DOM layer)          root.html only
+shell/vfs.js        Virtual filesystem tree and path functions      pure
+shell/core.js       Tokenizer, command registry, builtins, tab      pure
+shell/snake.js      Snake rules plus its takeover controller        pure core
+root.html           Hidden destination, absent from nav             —
+robots.txt          Carries the fragment 5 breadcrumb               —
+sys_dump.txt        The file that breadcrumb points to              —
+vercel.json         Rewrites /root to /root.html                    —
+tests.html          Browser test runner                             —
+tests/              Harness, Node runner, unit tests, manual list   —
+```
+
+Existing files that change:
+
+- **All five current pages** gain one `<script type="module" src="eggs.js"></script>` tag.
+- **`about.html`** gains the fragment 3 HTML comment.
+- **`style.css`** gains rules for the toast, the progress indicator, and the shell.
+
+Removing the script tags returns the site to its current behavior exactly; the feature is additive and independently removable.
+
+### ES modules
+
+Everything new is an ES module: explicit imports instead of globals, and module scripts are deferred by default. The same files run unchanged under Node 22 (verified on v22.14.0 with no `package.json`), which is what makes a one-command test runner possible without adding a toolchain. Module scripts need HTTP, which the site already required for the contact form.
+
+### Document-level delegation
+
+`script.js` swaps only `<main>`'s innerHTML during navigation and re-runs `initPageScripts()`. Any listener bound to an element inside `<main>` dies on swap, and any init hook that re-binds creates duplicates — this is precisely why the contact form needs the clone-node workaround at `script.js:131`.
+
+`eggs.js` therefore binds **every listener once, to `document`**, and matches targets by selector at event time. `document` survives the swap. There is nothing to re-register and no duplicate-firing bug class, and `script.js` needs no integration hook.
+
+### State
+
+One `localStorage` key, `egt.eggs`:
+
+```json
+{ "found": ["console", "cursor", "comment"], "unlocked": false, "snakeHigh": 42 }
+```
+
+All reads and writes wrapped in `try/catch`, falling back to an in-memory object. A disabled or throwing `localStorage` must never break the page. Corrupt JSON resets to empty rather than throwing on load.
+
+The store **reads through to storage on every access** rather than caching at load. `/root` loads both `eggs.js` and `shell.js`, each with its own store; a cached copy in one would overwrite the other's newer writes.
+
+## The trail
+
+Five fragments concatenate, in order, to `kernel_panic_at_0x00`.
+
+| # | ID | Location | How it is found | How it is logged | Fragment |
+|---|----|----------|-----------------|------------------|----------|
+| 1 | `console` | Any page | Console banner says to type `hunt()` | Calling `hunt()` | `kern` |
+| 2 | `cursor` | Home page | Click the blinking `.cursor` span three times within 1.5s | Automatic | `el_pa` |
+| 3 | `comment` | About page | HTML comment, visible only in view-source | Comment says to run `hunt("nic_")` | `nic_` |
+| 4 | `konami` | Any page | Konami code | Automatic | `at_` |
+| 5 | `robots` | `robots.txt` | A `# Disallow: /sys_dump.txt` comment; that file holds the fragment | File says to run `hunt("0x00")` | `0x00` |
+
+Two deliberate choices for fragment 5. The file uses a normal path rather than a dotfile — Vercel's static handling of dotfiles is not worth depending on for a puzzle step. And its name is unrelated to the fragment it contains, so reading `robots.txt` reveals only where to look, not the answer.
+
+### Claiming fragments
+
+`hunt()` is a console function. Calling it with no argument claims fragment 1; calling it with a fragment's text claims that fragment. Any call also claims fragment 1, since calling it at all proves the console was found.
+
+Fragments 3 and 5 need this because reading a comment or a text file runs no JavaScript — there is no event to detect. Any fragment may be claimed by text. Anyone who knows the text has found it or been told it, and this is not access control.
+
+### The hint chain
+
+Every `hunt()` call prints progress in trail order, masking unfound fragments, followed by the hint for the first one still missing:
+
+```
+> [2/5] fragments recovered
+  1. kern
+  2. ????
+  3. nic_
+  4. ????
+  5. ????
+> next lead: the cursor on the home page keeps blinking at you. knock three times.
+```
+
+This is what makes the trail a trail rather than five disconnected secrets: each lead points at the next, and they grow more cryptic in the same order the fragments grow harder. Hints name pages rather than URLs, because the live site serves `/about.html`, not `/about`.
+
+### Why fragments rather than a completion flag
+
+The pieces form a passphrase the user types at `/root`. `localStorage` only records which fragments have been *found* — a convenience, never the key. Clearing storage does not destroy the payoff for anyone who wrote the phrase down, and a solver can hand the passphrase to someone else, which is how this kind of thing spreads.
+
+### Feedback and the progress indicator
+
+Each newly logged fragment shows a brief glitch toast: `FRAGMENT 3/5 ACQUIRED :: "nic_"`, where the number is how many have been found. It is styled from the existing overlay vocabulary rather than new visual language.
+
+The progress counter `[3/5]` appears in the brand line **only after the first fragment is logged**. Before that the site looks exactly as it does today. This is what makes the difficulty curve work: the trail advertises itself only to people who have already demonstrated they are looking. The brand line lives in the header, outside `<main>`, so the counter survives SPA navigation.
+
+Fragment 1 is free deliberately. It teaches the mechanic and guarantees that anyone who opens devtools learns a hunt exists, giving the remaining four a reason to be hunted.
+
+## The shell
+
+### Locked state
+
+`root.html` always loads. Unsolved, it renders a passphrase prompt with an `ACCESS DENIED [n]` counter on wrong guesses and a hint every third failure. Guesses echo masked and are never added to command history. Correct entry unlocks, persists `unlocked: true`, and reveals the shell. A visitor who guesses the URL without solving anything gets a terminal that hints at the trail rather than a 404.
+
+### URL
+
+The live site does not use clean URLs: `/about` returns 404 and `/about.html` returns 200. `vercel.json` adds a single rewrite from `/root` to `/root.html` so the payoff is linkable.
+
+Enabling `cleanUrls` site-wide would be wrong. It changes every pathname to its extensionless form, and `updateActiveNav()` in `script.js` compares `location.pathname` against `about.html` — it would break nav highlighting in a file this design does not modify.
+
+### Virtual filesystem
+
+A nested object literal mapping paths to contents — **data, not code**. Holds real material (resume highlights, public links, project notes) and flavor files (`notes.txt`, `.secret`). Adding files later means editing the object; the REPL is untouched. It contains nothing the public site does not already show.
+
+### Commands
+
+`help`, `ls`, `cat`, `cd`, `pwd`, `whoami`, `clear`, `history`, `exit`, plus hidden joke handlers for `sudo` and `rm -rf /`. Arrow keys walk history. **Tab completion is included** despite being an obvious cut — it is the single detail separating "fake terminal" from "terminal." Pipes, redirection, and a real parser are all cut. Double and single quotes group arguments; nothing else is interpreted.
+
+Errors stay in character:
+
+```
+bash: foo: command not found
+cat: notes: Is a directory
+```
+
+All output renders through `textContent`. The shell echoes whatever the visitor types, so `innerHTML` would be an injection hole.
+
+### Command registry
+
+Commands are registry entries: a name mapped to `{ desc, hidden?, run(args, ctx) }`, where `run` returns `{ out: string[], clear?, exit?, takeover? }`. A `takeover` is a function handed a host — `draw(text)`, `onKey(handler)`, `finish(lines)` — that owns the screen until it calls `finish`. That is how games work. Adding a second game means one registry entry plus its own file, with the REPL unchanged. This interface is the entire justification for choosing a shell over a standalone game, so it must genuinely hold.
+
+### Snake
+
+Registered as the `snake` command. Rendered as a **character grid inside a `<pre>`, not canvas** — it inherits Fira Code and the green-on-dark palette for free, needs no retina or resize handling, and a canvas element would read as a foreign object dropped into a terminal. Arrow keys or WASD, `q` or Escape to quit, live score, high score persisted to `localStorage`. Game over returns to the prompt.
+
+The game ticks on `setInterval`, not `requestAnimationFrame`. The page swap in `script.js` depends on GSAP and therefore on `requestAnimationFrame`, which never fires in a pane that is not compositing; Snake should not share that fragility.
+
+### Navigation
+
+`root.html` has **no nav at all**. It is a terminal; `exit` leaves via a normal full page load to `index.html`. This keeps it in character and sidesteps the nav-consistency rule — there is no sixth nav entry to keep synchronized across files.
+
+## Failure modes
+
+| Mode | Handling |
+|---|---|
+| `localStorage` disabled or throwing | All access wrapped; in-memory fallback |
+| Corrupt stored JSON | `try/catch` parse, reset to empty |
+| Two stores on one page | Read-through on every access, so neither overwrites the other |
+| Keystroke triggers firing while typing | All keyboard triggers ignore events targeting `input`, `textarea`, `select`, or contenteditable. **Most likely real bug in the feature** — without this, typing into the contact form can fire the Konami listener. It also keeps shell typing and Snake from feeding the Konami buffer, since the shell input keeps focus throughout |
+| Storage cleared mid-hunt | Passphrase still works if recorded; fragments are re-findable |
+| Tampered state | Accepted. Unknown IDs are ignored when counting. Not access control |
+| Mobile | Triggers never fire, `hunt()` is not defined, indicator never appears, `/root` shows a plain desktop-only message |
+| Vercel does not serve a new file | Verified on a preview deployment before merge; see Testing |
+
+## Testing
+
+No toolchain is added. Logic lives in pure modules covered by a small dependency-free harness that runs two ways from one set of test files:
+
+- `node tests/run.mjs` — exits non-zero on failure; the command every implementation step uses
+- `tests.html` — the same tests in a browser
+
+Unit-tested:
+
+- Progress state parsing, serialization, the corrupt-input path, and storage fallbacks
+- Passphrase validation, fragment claiming, hints, the Konami buffer, triple-click timing, the typing guard, and touch detection
+- VFS path resolution (including `..`, `~`, trailing and duplicate slashes, missing paths)
+- Command tokenizing, every builtin, the registry, and tab completion
+- Snake movement, turning, eating, wall and self collision, the full-board ending, rendering, and the controller's quit and high-score paths
+
+The event and DOM layer gets a written manual checklist in `tests/MANUAL.md` covering each trigger, the toast, the indicator, the unlock flow, the shell, and behavior across an SPA navigation.
+
+**Deployment check.** The live site returns 404 for `README.md` even though it is committed to `main`, so this Vercel project does not serve every file, and the cause is not visible from the repo. Before merging, the preview deployment must confirm that `/root`, `/robots.txt`, and `/sys_dump.txt` return 200. The hunt cannot be completed without them.
+
+## Out of scope, deliberately
+
+Sound effects, achievements, a leaderboard, additional games, an overlay summon for the shell from other pages, hiding `tests.html` from production, and server-side anything. The overlay summon is the most plausible future addition and the registry does not preclude it.
+
+## Known interaction
+
+`script.js` logs six debug lines on every page load, including the EmailJS public key. The console banner will land in that noise. Cleaning it up is correct but modifies `script.js`, which this design deliberately avoids — it belongs in a separate commit.
+
+## Revisions
+
+Found while planning on 2026-09-10, checked against the live site and the code:
+
+1. **`/root` would have returned 404.** Added `vercel.json` with a single rewrite. Chose that over `cleanUrls`, which would break `updateActiveNav()` in `script.js`.
+2. **Fragment 1 contradicted the indicator rule.** The original said loading any page hands over fragment 1. That would show `[1/5]` to every visitor, contradicting "indicator appears only after the first find." Fragment 1 is now logged by calling `hunt()`.
+3. **Fragments 3 and 5 were undetectable.** Reading a comment or a text file fires no event, so the promised toast and progress update could never happen. Both breadcrumbs now say to run `hunt("<text>")`.
+4. **The trail had no hints between steps.** The original request was for hints hidden around the site; the table listed triggers but nothing led from one to the next. `hunt()` now prints the next lead.
+5. **ES modules instead of classic `defer` scripts, with logic split into `hunt/` and `shell/`.** Required for the "runs unchanged under Node" claim to be true, and it gives the test runner a single command.
+6. **Stores read through to storage.** Two stores coexist on `/root`; a load-time cache would have let one silently overwrite the other.
+7. **Line reference corrected.** The clone-node workaround is at `script.js:131`, not `:169`.
+8. **Added a preview-deployment check.** The live site does not serve `README.md`, so file serving cannot be assumed.

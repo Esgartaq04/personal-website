@@ -1,0 +1,7 @@
+# egt.agency
+# Nothing to see here. Automated agents, please move along.
+
+User-agent: *
+Allow: /
+
+# Disallow: /sys_dump.txt

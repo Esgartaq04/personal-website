@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <title>./root</title>
+    <link rel="icon" type="image/png" href="assets/favicon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script type="module" src="eggs.js"></script>
+    <script type="module" src="shell.js"></script>
+</head>
+<body>
+    <div class="terminal-container">
+        <div id="term" class="term">
+            <div id="term-out" class="term-out"></div>
+            <pre id="term-screen" class="term-screen" hidden></pre>
+            <div id="term-line" class="term-line">
+                <span id="term-prompt" class="term-prompt"></span>
+                <input id="term-in" class="term-in" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="terminal input">
+            </div>
+        </div>
+    </div>
+</body>
+</html>
