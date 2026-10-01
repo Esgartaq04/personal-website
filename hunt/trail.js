@@ -1,42 +1,53 @@
-// The hunt's rules: fragments, passphrase, hints, and the pure trigger logic eggs.js wires to the page.
+// The hunt's rules: fragments, hints, and the pure trigger logic eggs.js wires to the page.
 
 // Trail order is passphrase order and difficulty order. Hints name pages, never URLs:
 // the live site serves /about.html, not /about.
+//
+// Only the two fragments that are found by reading public files carry their text here. The other
+// three, and therefore the passphrase, exist only server-side (HUNT_FRAGMENTS, see lib/hunt.js):
+// the browser gets each one from /api/fragment when its trigger fires, and /api/unlock checks the answer.
 export const FRAGMENTS = [
-  { id: 'console', text: 'kern', hint: 'type hunt() in the console.' },
-  { id: 'cursor', text: 'el_pa', hint: 'the cursor on the home page keeps blinking at you. knock three times.' },
-  { id: 'comment', text: 'nic_', hint: 'some pages say more than they render. read the source of the about page.' },
-  { id: 'konami', text: 'at_', hint: 'an old cheat code still works here. up, up...' },
-  { id: 'robots', text: '0x00', hint: 'even robots are told where not to look. find out what they were told.' },
+  { id: 'console', text: null, hint: 'type hunt() in the console.' },
+  { id: 'cursor', text: null, hint: 'the cursor on the home page keeps blinking at you. knock three times.' },
+  { id: 'comment', text: 'ash_', hint: 'some pages say more than they render. read the source of the about page.' },
+  { id: 'konami', text: null, hint: 'an old cheat code still works here. up, up...' },
+  { id: 'robots', text: '0xd4', hint: 'even robots are told where not to look. find out what they were told.' },
 ]
 
-export const PASSPHRASE = FRAGMENTS.map(f => f.text).join('')
+export const SECRET_IDS = FRAGMENTS.filter(f => f.text === null).map(f => f.id)
 
 export const KONAMI = ['arrowup', 'arrowup', 'arrowdown', 'arrowdown', 'arrowleft', 'arrowright', 'arrowleft', 'arrowright', 'b', 'a']
 
 const MODIFIER_KEYS = new Set(['shift', 'control', 'alt', 'meta', 'capslock'])
 
-export function isPassphrase(input) {
-  return typeof input === 'string' && input.trim().toLowerCase() === PASSPHRASE
+export function normalizePassphrase(input) {
+  return typeof input === 'string' ? input.trim().toLowerCase() : ''
 }
 
 export function fragmentById(id) {
   return FRAGMENTS.find(f => f.id === id) || null
 }
 
-export function fragmentByText(text) {
+// Matches public fragment text, plus secret text the visitor has already earned (state.texts).
+export function fragmentByText(text, earned = {}) {
   if (typeof text !== 'string') return null
   const wanted = text.trim().toLowerCase()
-  return FRAGMENTS.find(f => f.text === wanted) || null
+  return FRAGMENTS.find(f => (f.text ?? earned[f.id]) === wanted) || null
+}
+
+export function fragmentText(fragment, earned = {}) {
+  return fragment.text ?? earned[fragment.id] ?? null
 }
 
 export function countFound(state) {
   return FRAGMENTS.filter(f => state.found.includes(f.id)).length
 }
 
-export function markFound(state, id) {
+// text is the server's answer for a secret fragment; it is kept so status lines and hunt(text) work offline.
+export function markFound(state, id, text = null) {
   if (!fragmentById(id) || state.found.includes(id)) return { state, isNew: false }
-  return { state: { ...state, found: [...state.found, id] }, isNew: true }
+  const texts = text ? { ...state.texts, [id]: text } : state.texts
+  return { state: { ...state, found: [...state.found, id], texts }, isNew: true }
 }
 
 export function progressLabel(state) {
@@ -48,7 +59,7 @@ export function toastText(fragment, count) {
 }
 
 export function statusLines(state) {
-  return FRAGMENTS.map((f, i) => `  ${i + 1}. ${state.found.includes(f.id) ? f.text : '????'}`)
+  return FRAGMENTS.map((f, i) => `  ${i + 1}. ${(state.found.includes(f.id) && fragmentText(f, state.texts)) || '????'}`)
 }
 
 export function nextHint(state) {
@@ -93,8 +104,9 @@ export function isTouchOnly(matchMedia) {
   return matchMedia('(pointer: coarse)').matches && !matchMedia('(any-pointer: fine)').matches
 }
 
-export function unlockAttempt(input, failures) {
-  if (isPassphrase(input)) {
+// The server decides whether the passphrase is right; this only words the answer.
+export function unlockAttempt(ok, failures) {
+  if (ok) {
     return { ok: true, failures, lines: ['ACCESS GRANTED', 'welcome, visitor. type `help` to look around.'] }
   }
   const next = failures + 1

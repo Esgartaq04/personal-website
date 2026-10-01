@@ -3,14 +3,15 @@ import { emptyState } from '../hunt/state.js'
 import {
   FRAGMENTS,
   KONAMI,
-  PASSPHRASE,
+  SECRET_IDS,
   bannerText,
   countFound,
   fragmentById,
   fragmentByText,
-  isPassphrase,
   isTouchOnly,
+  fragmentText,
   markFound,
+  normalizePassphrase,
   nextHint,
   progressLabel,
   pushKey,
@@ -21,33 +22,45 @@ import {
   unlockAttempt,
 } from '../hunt/trail.js'
 
-test('trail: five fragments assemble the passphrase', () => {
+test('trail: five fragments in trail order', () => {
   assertEqual(FRAGMENTS.length, 5)
   assertDeepEqual(FRAGMENTS.map(f => f.id), ['console', 'cursor', 'comment', 'konami', 'robots'])
-  assertEqual(PASSPHRASE, 'kernel_panic_at_0x00')
 })
 
-test('trail: isPassphrase ignores case and surrounding whitespace', () => {
-  assert(isPassphrase('kernel_panic_at_0x00'))
-  assert(isPassphrase('  KERNEL_PANIC_AT_0X00\n'))
+// The whole point of the server half: the browser bundle must not be able to assemble the passphrase.
+test('trail: secret fragments carry no text in client code', () => {
+  assertDeepEqual(SECRET_IDS, ['console', 'cursor', 'konami'])
+  for (const id of SECRET_IDS) assertEqual(fragmentById(id).text, null)
+  for (const id of ['comment', 'robots']) assert(typeof fragmentById(id).text === 'string', `${id} should be public`)
 })
 
-test('trail: isPassphrase rejects near misses and non-strings', () => {
-  assert(!isPassphrase('kernel_panic_at_0x0'))
-  assert(!isPassphrase('kernel panic at 0x00'))
-  assert(!isPassphrase(''))
-  assert(!isPassphrase(null))
+test('trail: normalizePassphrase trims and lowercases, and blanks non-strings', () => {
+  assertEqual(normalizePassphrase('  ABC_def\n'), 'abc_def')
+  assertEqual(normalizePassphrase(null), '')
+  assertEqual(normalizePassphrase(42), '')
 })
 
-test('trail: fragmentByText matches whole fragment text only', () => {
-  assertEqual(fragmentByText('nic_').id, 'comment')
-  assertEqual(fragmentByText(' 0X00 ').id, 'robots')
-  assertEqual(fragmentByText('nic'), null)
+test('trail: fragmentByText matches whole public fragment text only', () => {
+  const comment = fragmentById('comment').text
+  assertEqual(fragmentByText(comment).id, 'comment')
+  assertEqual(fragmentByText(` ${fragmentById('robots').text.toUpperCase()} `).id, 'robots')
+  assertEqual(fragmentByText(comment.slice(0, -1)), null)
   assertEqual(fragmentByText(undefined), null)
 })
 
+test('trail: fragmentByText matches secret text only once it has been earned', () => {
+  assertEqual(fragmentByText('zz_'), null)
+  assertEqual(fragmentByText('zz_', { konami: 'zz_' }).id, 'konami')
+})
+
+test('trail: fragmentText prefers public text, then earned text, else null', () => {
+  assertEqual(fragmentText(fragmentById('robots')), fragmentById('robots').text)
+  assertEqual(fragmentText(fragmentById('cursor'), { cursor: 'q_' }), 'q_')
+  assertEqual(fragmentText(fragmentById('cursor')), null)
+})
+
 test('trail: fragmentById returns null for unknown ids', () => {
-  assertEqual(fragmentById('cursor').text, 'el_pa')
+  assertEqual(fragmentById('comment').id, 'comment')
   assertEqual(fragmentById('nope'), null)
 })
 
@@ -80,27 +93,39 @@ test('trail: markFound does not mutate its input', () => {
 })
 
 test('trail: countFound and progressLabel ignore unknown stored ids', () => {
-  const state = { found: ['console', 'tampered', 'robots'], unlocked: false, snakeHigh: 0 }
+  const state = { found: ['console', 'tampered', 'robots'], texts: {}, snakeHigh: 0 }
   assertEqual(countFound(state), 2)
   assertEqual(progressLabel(state), '[2/5]')
 })
 
 test('trail: toastText formats the acquisition message', () => {
-  assertEqual(toastText(fragmentById('comment'), 3), 'FRAGMENT 3/5 ACQUIRED :: "nic_"')
+  assertEqual(toastText({ text: 'ab_' }, 3), 'FRAGMENT 3/5 ACQUIRED :: "ab_"')
 })
 
 test('trail: statusLines masks unfound fragments in trail order', () => {
-  const state = { found: ['konami'], unlocked: false, snakeHigh: 0 }
-  assertDeepEqual(statusLines(state), ['  1. ????', '  2. ????', '  3. ????', '  4. at_', '  5. ????'])
+  const state = { found: ['konami', 'robots'], texts: { konami: 'k_' }, snakeHigh: 0 }
+  const robots = fragmentById('robots').text
+  assertDeepEqual(statusLines(state), ['  1. ????', '  2. ????', '  3. ????', '  4. k_', `  5. ${robots}`])
+})
+
+test('trail: statusLines masks a found secret fragment whose text was never stored', () => {
+  const state = { found: ['cursor'], texts: {}, snakeHigh: 0 }
+  assertEqual(statusLines(state)[1], '  2. ????')
+})
+
+test('trail: markFound stores the server-provided text with the find', () => {
+  const { state } = markFound(emptyState(), 'cursor', 'c_')
+  assertDeepEqual(state.texts, { cursor: 'c_' })
+  assertDeepEqual(markFound(emptyState(), 'comment').state.texts, {})
 })
 
 test('trail: nextHint points at the first unfound fragment in trail order', () => {
-  const state = { found: ['console', 'comment'], unlocked: false, snakeHigh: 0 }
+  const state = { found: ['console', 'comment'], texts: {}, snakeHigh: 0 }
   assertEqual(nextHint(state), fragmentById('cursor').hint)
 })
 
 test('trail: nextHint is null once everything is found', () => {
-  const state = { found: FRAGMENTS.map(f => f.id), unlocked: false, snakeHigh: 0 }
+  const state = { found: FRAGMENTS.map(f => f.id), texts: {}, snakeHigh: 0 }
   assertEqual(nextHint(state), null)
 })
 
@@ -205,18 +230,18 @@ test('trail: isTouchOnly is false for laptops, touchscreen laptops, and missing 
   assert(!isTouchOnly(undefined))
 })
 
-test('trail: unlockAttempt grants access on the passphrase', () => {
-  const result = unlockAttempt('kernel_panic_at_0x00', 2)
+test('trail: unlockAttempt words a granted unlock', () => {
+  const result = unlockAttempt(true, 2)
   assert(result.ok)
   assertEqual(result.failures, 2)
   assertEqual(result.lines[0], 'ACCESS GRANTED')
 })
 
 test('trail: unlockAttempt counts failures and hints on every third', () => {
-  const first = unlockAttempt('guess', 0)
+  const first = unlockAttempt(false, 0)
   assert(!first.ok)
   assertDeepEqual(first.lines, ['ACCESS DENIED [1]'])
-  const third = unlockAttempt('guess', 2)
+  const third = unlockAttempt(false, 2)
   assertEqual(third.failures, 3)
   assertEqual(third.lines.length, 2)
   assert(third.lines[1].startsWith('hint:'))

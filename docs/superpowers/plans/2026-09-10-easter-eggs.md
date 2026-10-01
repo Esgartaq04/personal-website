@@ -1,5 +1,9 @@
 # Easter Egg Hunt and Hidden Shell Implementation Plan
 
+> **Historical.** This is the September 2026 build plan, kept as a record. Every fragment and the passphrase
+> in it were retired on 2026-10-01 and no longer open `/root`. The hunt now checks the passphrase
+> server-side; see "Server half" in `docs/superpowers/specs/2026-08-27-easter-eggs-design.md`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Hide a five-fragment scavenger hunt across the portfolio site whose passphrase unlocks `/root`, an interactive fake shell with tab completion and a playable Snake.
