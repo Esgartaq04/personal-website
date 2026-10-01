@@ -34,7 +34,7 @@ fx.js                         — "corruption" effects that grow with hunt progr
 hunt/                         — hunt rules, progress state, corruption stages, rain model (public)
 root.html         /root       — hidden shell; not in the nav
 lock.js, term.js              — /root lock screen and terminal DOM (public)
-shell.js, shell/              — the shell: filesystem, commands, Snake, matrix (served only after unlock)
+shell.js, shell/              — the shell: filesystem, commands, Snake, matrix, arcade (served only after unlock)
 api/                          — Vercel Functions: /api/fragment, /api/unlock, /api/session
 lib/                          — server logic for those functions and the middleware
 middleware.js                 — 404s shell.js and shell/ without a valid unlock cookie
@@ -159,6 +159,15 @@ Everything sent to a browser can be read, so the answer is not sent:
 The limit, by design: the cursor, Konami, and console triggers run in the browser, so someone who reads `eggs.js` can call `/api/fragment` directly. That takes deliberate reverse-engineering, unlike reading a string out of the source.
 
 **Changing the answers:** edit `HUNT_FRAGMENTS` in Vercel (Production and Preview) and redeploy. Both variables are type *sensitive*: Vercel will not show the current value, so keep your own copy of the answers somewhere private. To rotate the public fragments, change the text in `about.html`, `sys_dump.txt`, and `hunt/trail.js` together. Rotating `HUNT_SECRET` logs everyone out of `/root`. Never commit the secret values: this repo is public.
+
+### The arcade
+
+Inside `/root`, `sudo 42` mounts `~/arcade` with two more games: Tetris and a three-level ASCII platformer, alongside a copy of Snake. The hints are `/etc/sudoers` and `~/.secret`. Every other `sudo` keeps its joke answer.
+
+- `shell/arcade.js` wraps `sudo` and mounts the folder (`withArcade` in `shell/vfs.js` returns a copy of the tree, so `TREE` stays untouched). The unlock is remembered as `arcade: true` in `egt.eggs`. That flag is no more trusted than the rest of the key: it only reveals a folder inside a shell that is already unlocked.
+- Games run by name (`tetris`) or by path (`./tetris`, `~/arcade/tetris`). Paths work through `resolveCommand` on the shell context, which `cli/engine.js` asks when a name is not registered. A file is runnable when its node has `exec`; `ls -l` shows those as `-r-xr-xr-x`.
+- `shell/tetris.js` and `shell/platformer.js` follow Snake's split of pure rules plus a takeover controller. The platformer is the one game that needs key releases, so the takeover host's `onKey(down, up)` takes an optional second handler.
+- To edit a platformer level, change the strings in `LEVELS`. `tests/platformer.test.js` searches every level and fails if one can no longer be finished.
 
 ### Corruption
 

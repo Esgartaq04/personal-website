@@ -6,6 +6,9 @@
 // for commands that call the server. A result is { out, ...fields the UI acts on }. Common fields:
 // clear, exit, navigate, download, takeover, fx, and prompt: { label, secret, submit(value) }, which
 // sends the UI's next line to submit() instead of execute(), masked when secret and never in history.
+//
+// A context may also carry resolveCommand(name, ctx), consulted when name is not registered. The /root
+// shell uses it to run programs by path (./tetris); the site console has none.
 
 export function tokenize(line) {
   const tokens = []
@@ -64,7 +67,7 @@ export function execute(ctx, line) {
   }
   ctx.history.push(trimmed)
   const [name = '', ...args] = tokenize(trimmed)
-  const command = ctx.registry.get(name)
+  const command = ctx.registry.get(name) ?? ctx.resolveCommand?.(name, ctx)
   if (!command) return { out: [...echo, `bash: ${name}: command not found`] }
   const failed = error => ({ out: [...echo, `bash: ${name}: ${error.message}`] })
   const withEcho = result => (echo.length ? { ...result, out: [...echo, ...result.out] } : result)

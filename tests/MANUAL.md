@@ -73,6 +73,11 @@ Locally the page is `/root.html`; the `/root` rewrite only exists on Vercel.
 - [ ] `clear` empties the screen. `exit` prints `logout` and lands on the home page.
 - [ ] `tree`, `ls -l`, `grep -ri react ~`, `find ~ -name "*.log"`, `head -n 3 skills.txt`, `wc notes.txt`, and `man grep` print sensible output that lines up in columns.
 - [ ] `neofetch` draws the logo beside the info, and shows the Snake high score after a game.
+- [ ] `cat /etc/sudoers` ends with `NOPASSWD: 42`. `sudo 41` gives the joke answer; `sudo 42` prints `access granted` and `ls ~` now shows `arcade/`. A second `sudo 42` says `already granted`.
+- [ ] `cd arcade`, `ls -l` shows `tetris`, `platformer`, and `snake` as `-r-xr-xr-x`. `./notes.txt` from `~` says `Permission denied`.
+- [ ] `./tetris`: pieces fall, arrows/WASD move, up rotates, space hard-drops, a full row clears and scores, `p` pauses, `q` returns with `game over. score N, lines L, high score M.`
+- [ ] `./platformer`: holding right walks smoothly and releasing stops; up/space jumps onto `=` platforms from below; spikes and side hits cost a life; landing on `E` removes it; reaching `F` goes to the next level; `q` returns with the coin count.
+- [ ] After a reload, the arcade is still there, `help` lists `platformer` and `tetris`, and `neofetch` shows a Tetris line.
 - [ ] `open projects` prints `opening /projects...` and lands on the projects page. `open nope` lists the valid pages.
 - [ ] `resume` downloads `Resume-current.pdf`. `contact` prints the links.
 - [ ] `matrix` fills the screen with falling green characters; `q` returns to the prompt with `wake up, visitor.`

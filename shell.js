@@ -6,6 +6,7 @@ import { complete, createContext, execute, historyNav, register, registerBuiltin
 import { registerExtras } from './shell/commands.js'
 import { snakeCommand } from './shell/snake.js'
 import { matrixCommand } from './shell/matrix.js'
+import { registerArcade } from './shell/arcade.js'
 import { TREE, displayPath } from './shell/vfs.js'
 import { input, inputLine, output, print, screen, setPrompt } from './term.js'
 
@@ -15,14 +16,17 @@ registerBuiltins(ctx)
 registerExtras(ctx)
 register(ctx, 'snake', snakeCommand)
 register(ctx, 'matrix', matrixCommand)
+registerArcade(ctx) // After the builtins: it wraps sudo.
 
 // 'shell' | 'takeover' | 'exiting'
 let mode = 'shell'
 let historyIndex = 0
 let takeoverKeys = null
+let takeoverKeysUp = null
 
 export function start(lines) {
   input.addEventListener('keydown', onKey)
+  input.addEventListener('keyup', onKeyUp)
   historyIndex = ctx.history.length
   print(lines)
   setPrompt(promptText())
@@ -63,6 +67,11 @@ function onKey(event) {
   }
 }
 
+// Only games that track held keys (the platformer) ask for releases.
+function onKeyUp(event) {
+  if (mode === 'takeover' && takeoverKeysUp) takeoverKeysUp(event.key)
+}
+
 function submit(value) {
   print([promptText() + value])
   const result = execute(ctx, value)
@@ -101,11 +110,13 @@ function startTakeover(takeover) {
     draw(text) {
       screen.textContent = text
     },
-    onKey(handler) {
-      takeoverKeys = handler
+    onKey(down, up = null) {
+      takeoverKeys = down
+      takeoverKeysUp = up
     },
     finish(lines) {
       takeoverKeys = null
+      takeoverKeysUp = null
       screen.hidden = true
       screen.textContent = ''
       output.hidden = false

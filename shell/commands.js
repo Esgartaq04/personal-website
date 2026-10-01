@@ -326,6 +326,10 @@ function neofetch(ctx) {
     'Cloud: GCP, AWS, Terraform, Docker',
     `Snake: ${high > 0 ? `high score ${high}` : 'unplayed'}`,
   ]
+  if (ctx.store && ctx.store.get().arcade) {
+    const tetris = ctx.store.get().tetrisHigh
+    info.push(`Tetris: ${tetris > 0 ? `high score ${tetris}` : 'unplayed'}`)
+  }
   const rows = Math.max(LOGO.length, info.length)
   const width = LOGO[0].length
   return Array.from({ length: rows }, (_, i) => `${(LOGO[i] ?? '').padEnd(width)}   ${info[i] ?? ''}`.trimEnd())
