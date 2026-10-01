@@ -55,3 +55,16 @@ test('engine: the shell still re-exports the engine', async () => {
   assertEqual(core.execute, execute)
   assert(typeof core.tokenize === 'function' && typeof core.historyNav === 'function')
 })
+
+test('engine: resolveCommand is asked only for names the registry lacks', () => {
+  const ctx = ctxWith({ ping: { run: () => ({ out: ['pong'] }) } })
+  const asked = []
+  ctx.resolveCommand = name => {
+    asked.push(name)
+    return name === './prog' ? { run: () => ({ out: ['ran'] }) } : undefined
+  }
+  assertDeepEqual(execute(ctx, 'ping').out, ['pong'])
+  assertDeepEqual(execute(ctx, './prog').out, ['ran'])
+  assertDeepEqual(execute(ctx, 'nope').out, ['bash: nope: command not found'])
+  assertDeepEqual(asked, ['./prog', 'nope'])
+})

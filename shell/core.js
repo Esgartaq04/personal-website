@@ -3,8 +3,9 @@
 // console; it is re-exported here so shell code and tests can keep importing from one place.
 //
 // Shell results also use: exit, takeover, navigate, download, fx. A takeover is handed a host
-// { draw(text), onKey(handler), finish(lines) } and owns the screen until it calls finish. That is
-// the whole interface a game needs.
+// { draw(text), onKey(down, up?), finish(lines) } and owns the screen until it calls finish. down gets
+// each key press; up, if given, each key release (for games that track held keys). That is the whole
+// interface a game needs.
 
 import {
   complete as completeLine,
@@ -20,7 +21,18 @@ import { HOME, getNode, listDir, readFile, resolvePath } from './vfs.js'
 export { execute, helpLines, historyNav, register, tokenize }
 
 export function createContext({ tree, home = HOME, ...options }) {
-  return { tree, ...createEngineContext({ home, ...options }) }
+  return { tree, resolveCommand, ...createEngineContext({ home, ...options }) }
+}
+
+// Runs files by path, like ./tetris: only names with a slash, and only files marked exec, which run
+// the registered command they name. Anything else gets bash's answer, or undefined for not found.
+function resolveCommand(name, ctx) {
+  if (!name.includes('/')) return undefined
+  const node = getNode(ctx.tree, resolvePath(ctx.cwd, name, ctx.home))
+  if (!node) return undefined
+  if (node.exec) return ctx.registry.get(node.exec)
+  const error = node.type === 'dir' ? 'Is a directory' : 'Permission denied'
+  return { desc: '', hidden: true, run: () => ({ out: [`bash: ${name}: ${error}`] }) }
 }
 
 export function registerBuiltins(ctx) {
@@ -83,7 +95,8 @@ function ls(args, ctx) {
 export function longEntry(node, name) {
   const isDir = node.type === 'dir'
   const size = isDir ? 4096 : node.content.length
-  return `${isDir ? 'dr-xr-xr-x' : '-r--r--r--'} 1 visitor visitor ${String(size).padStart(5)} Oct  1  2026 ${name}`
+  const mode = isDir ? 'dr-xr-xr-x' : node.exec ? '-r-xr-xr-x' : '-r--r--r--'
+  return `${mode} 1 visitor visitor ${String(size).padStart(5)} Oct  1  2026 ${name}`
 }
 
 function cd(args, ctx) {

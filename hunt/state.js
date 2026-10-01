@@ -5,7 +5,7 @@
 export const STORAGE_KEY = 'egt.eggs'
 
 export function emptyState() {
-  return { found: [], texts: {}, snakeHigh: 0, fx: 'on' }
+  return { found: [], texts: {}, snakeHigh: 0, fx: 'on', arcade: false, tetrisHigh: 0, platformerBest: 0 }
 }
 
 export function parseState(raw) {
@@ -24,13 +24,30 @@ export function parseState(raw) {
       if (typeof text === 'string') texts[id] = text
     }
   }
-  const snakeHigh = Number.isInteger(data.snakeHigh) && data.snakeHigh > 0 ? data.snakeHigh : 0
+  const score = value => (Number.isInteger(value) && value > 0 ? value : 0)
   const fx = data.fx === 'off' ? 'off' : 'on' // The corruption effects; `fsck` in the shell turns them off.
-  return { found, texts, snakeHigh, fx }
+  const arcade = data.arcade === true // The /root arcade folder, unlocked by `sudo 42` (shell/arcade.js).
+  return {
+    found,
+    texts,
+    snakeHigh: score(data.snakeHigh),
+    fx,
+    arcade,
+    tetrisHigh: score(data.tetrisHigh),
+    platformerBest: score(data.platformerBest),
+  }
 }
 
 export function serializeState(state) {
-  return JSON.stringify({ found: state.found, texts: state.texts, snakeHigh: state.snakeHigh, fx: state.fx })
+  return JSON.stringify({
+    found: state.found,
+    texts: state.texts,
+    snakeHigh: state.snakeHigh,
+    fx: state.fx,
+    arcade: state.arcade,
+    tetrisHigh: state.tetrisHigh,
+    platformerBest: state.platformerBest,
+  })
 }
 
 // Returns localStorage if it is usable, else null. Private browsing and blocked site data both throw.

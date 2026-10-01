@@ -5,10 +5,19 @@ export const HOME = '/home/esteban'
 
 const dir = children => ({ type: 'dir', children })
 const text = (...lines) => ({ type: 'file', content: lines.join('\n') })
+// An executable: running its path runs the registered command named by exec.
+const program = exec => ({ type: 'file', content: `ELF 64-bit LSB executable, x86-64 (${exec}). run it: ./${exec}`, exec })
 
 export const TREE = dir({
   etc: dir({
     motd: text('welcome to egt.agency.', 'everything here is read-only, including your chances of breaking it.'),
+    sudoers: text(
+      '# /etc/sudoers',
+      '# visitor may run exactly one thing as root. it is the answer to everything.',
+      '',
+      'root     ALL=(ALL:ALL) ALL',
+      'visitor  ALL=(root) NOPASSWD: 42',
+    ),
   }),
   home: dir({
     esteban: dir({
@@ -34,7 +43,7 @@ export const TREE = dir({
         '[x] wait for someone to find them',
         '[x] lock the door properly this time',
         '[x] add a screensaver',
-        '[ ] add a second game',
+        '[x] add a second game (and a third. they are not where snake is.)',
       ),
       'skills.txt': text(
         'languages   Python, TypeScript, JavaScript, Java, C/C++, Go, C#/.NET, F#, SQL, Bash',
@@ -52,7 +61,12 @@ export const TREE = dir({
         'DeVry University Advantage Academy :: Aug 2021 - May 2023',
         'Associate in Business Administration, 4.0 GPA, earned during high school',
       ),
-      '.secret': text('you found the hidden file. most people never type ls -a.', '', 'there is no deeper secret. but there is a game.', 'try: snake'),
+      '.secret': text(
+        'you found the hidden file. most people never type ls -a.',
+        '',
+        'there is a game: try snake.',
+        'there is also a deeper secret. sudo knows the answer to life, the universe, and everything.',
+      ),
       experience: dir({
         'morningstar.log': text(
           'Software Engineering Intern, Technology Intern Program',
@@ -189,6 +203,36 @@ export const TREE = dir({
     }),
   }),
 })
+
+// The secret folder `sudo 42` unlocks (shell/arcade.js). Not in TREE: withArcade adds it.
+export const ARCADE_DIR = `${HOME}/arcade`
+
+export const ARCADE = dir({
+  'README.txt': text(
+    'the arcade. you asked politely, with the right number.',
+    '',
+    'tetris      arrows/wasd move, up/w/x rotate, down/s soft drop, space hard drop, p pause',
+    'platformer  arrows/a d to move, up/w/space to jump. collect o, avoid ^ and E, reach F',
+    'snake       arrows/wasd to steer',
+    '',
+    'run one: ./tetris    q quits any of them.',
+  ),
+  platformer: program('platformer'),
+  snake: program('snake'),
+  tetris: program('tetris'),
+})
+
+// Returns a copy of tree with the arcade mounted at ARCADE_DIR. Copies only the directories on the
+// path, so the shared TREE is never mutated.
+export function withArcade(tree) {
+  const mount = (node, segments) => {
+    if (segments.length === 0) return ARCADE
+    const [head, ...rest] = segments
+    const child = Object.hasOwn(node.children, head) ? node.children[head] : dir({})
+    return dir({ ...node.children, [head]: mount(child, rest) })
+  }
+  return mount(tree, ARCADE_DIR.split('/').filter(Boolean))
+}
 
 export function resolvePath(cwd, input, home = HOME) {
   let raw = input
