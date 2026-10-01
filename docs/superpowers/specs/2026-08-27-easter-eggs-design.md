@@ -71,7 +71,7 @@ One `localStorage` key, `egt.eggs`:
 { "found": ["console", "cursor", "comment"], "texts": { "console": "...", "cursor": "..." }, "snakeHigh": 42 }
 ```
 
-`texts` holds the secret fragments the server has handed this visitor, so `hunt()` can show them again. None of this is trusted: whether `/root` is unlocked lives only in the signed cookie (see Server half).
+`texts` holds the secret fragments the server has handed this visitor, so the console's `hunt` can show them again. None of this is trusted: whether `/root` is unlocked lives only in the signed cookie (see Server half).
 
 All reads and writes wrapped in `try/catch`, falling back to an in-memory object. A disabled or throwing `localStorage` must never break the page. Corrupt JSON resets to empty rather than throwing on load.
 
@@ -85,17 +85,17 @@ the browser bundle. The other two are found by reading public files, so their te
 
 | # | ID | Location | How it is found | How it is logged | Fragment |
 |---|----|----------|-----------------|------------------|----------|
-| 1 | `console` | Any page | Console banner says to type `hunt()` | Calling `hunt()` | server-held |
+| 1 | `console` | Any page | Devtools banner says the site has its own console, opened with `` Ctrl+` `` | Running `hunt` in the site console | server-held |
 | 2 | `cursor` | Home page | Click the blinking `.cursor` span three times within 1.5s | Automatic | server-held |
-| 3 | `comment` | About page | HTML comment, visible only in view-source | Comment says to run `hunt("ash_")` | `ash_` |
+| 3 | `comment` | About page | HTML comment, visible only in view-source | Comment says to run `hunt ash_` in the site console | `ash_` |
 | 4 | `konami` | Any page | Konami code | Automatic | server-held |
-| 5 | `robots` | `robots.txt` | A `# Disallow: /sys_dump.txt` comment; that file holds the fragment | File says to run `hunt("0xd4")` | `0xd4` |
+| 5 | `robots` | `robots.txt` | A `# Disallow: /sys_dump.txt` comment; that file holds the fragment | File says to run `hunt 0xd4` in the site console | `0xd4` |
 
 Two deliberate choices for fragment 5. The file uses a normal path rather than a dotfile — Vercel's static handling of dotfiles is not worth depending on for a puzzle step. And its name is unrelated to the fragment it contains, so reading `robots.txt` reveals only where to look, not the answer.
 
 ### Claiming fragments
 
-`hunt()` is a console function. Calling it with no argument claims fragment 1; calling it with a fragment's text claims that fragment. Any call also claims fragment 1, since calling it at all proves the console was found.
+`hunt` is a command in the **site console** (see Site console below). Running it with no argument claims fragment 1; running it with a fragment's text claims that fragment. Any run also claims fragment 1, since running it at all proves the console was found. (Until 2026-10-01 this was a `hunt()` function in the devtools console; that is now a stub pointing at the site console.)
 
 Fragments 3 and 5 need this because reading a comment or a text file runs no JavaScript — there is no event to detect. A secret fragment may be claimed by text only once the server has handed it to this visitor.
 
@@ -103,7 +103,7 @@ When a secret fragment's trigger fires, `eggs.js` asks `POST /api/fragment {id}`
 
 ### The hint chain
 
-Every `hunt()` call prints progress in trail order, masking unfound fragments, followed by the hint for the first one still missing:
+Every `hunt` prints progress in trail order, masking unfound fragments, followed by the hint for the first one still missing:
 
 ```
 > [2/5] fragments recovered
@@ -128,6 +128,17 @@ Each newly logged fragment shows a brief glitch toast: `FRAGMENT 3/5 ACQUIRED ::
 The progress counter `[3/5]` appears in the brand line **only after the first fragment is logged**. Before that the site looks exactly as it does today. This is what makes the difficulty curve work: the trail advertises itself only to people who have already demonstrated they are looking. The brand line lives in the header, outside `<main>`, so the counter survives SPA navigation.
 
 Fragment 1 is free deliberately. It teaches the mechanic and guarantees that anyone who opens devtools learns a hunt exists, giving the remaining four a reason to be hunted.
+
+## Site console
+
+Added 2026-10-01. Devtools stays the place for clues, but the hunt is played in a console built into the site, in the same terminal style as `/root`.
+
+- **Opening.** `` Ctrl+` `` (VS Code's terminal shortcut) toggles a panel that drops from the top of any page except `/root` (whose shell owns the keyboard). It matches `event.code === 'Backquote'`, so non-US layouts work, and it works from inside form fields because it is a deliberate chord; a plain backtick types normally. Esc also closes, and focus returns to wherever it was.
+- **Discovery.** Nothing on the page shows it. The devtools banner reads *this site has a console of its own. press ctrl+\` on any page to open it, then type: hunt*. `hunt()` in devtools only prints `` > wrong console. press ctrl+` on the page. ``
+- **Commands** (`hunt/console.js`): `hunt [fragment]`, `hint`, `su [root]`, `whoami`, `clear`, `exit`, `help`, plus hidden `sudo`, `ls`, `cd` jokes. Deps (store, `claim`, `unlock`, `isRooted`) are injected, so the module is pure and unit-tested.
+- **Passphrase.** `su root` returns a `prompt` result; the UI masks the next line (password input), sends it to `/api/unlock` instead of `execute`, and never records it in history. Success prints `ACCESS GRANTED`, sets the rooted look, and navigates to `/root`, which opens straight into the shell because the cookie is already set. Failures print `su: Authentication failure`, with the existing hint every third time.
+- **UI** (`site-console.js`): built lazily on first open, appended to `<body>` outside `<main>`, reusing the shell's `.term-*` classes. History and Tab completion of command names. Arrives with the corruption jolt from stage 2; the welcome line is lightly corrupted from stage 4.
+- **Engine.** `cli/engine.js` is the shell's former engine (tokenizer, registry, `execute` with `!!`, history, completion), moved out of the gated `shell/` so both terminals share it. `execute` now also passes through async results, and results may carry `prompt`.
 
 ## Corruption
 
@@ -211,8 +222,8 @@ The game ticks on `setInterval`, not `requestAnimationFrame`. The page swap in `
 | Keystroke triggers firing while typing | All keyboard triggers ignore events targeting `input`, `textarea`, `select`, or contenteditable. **Most likely real bug in the feature** — without this, typing into the contact form can fire the Konami listener. It also keeps shell typing and Snake from feeding the Konami buffer, since the shell input keeps focus throughout |
 | Storage cleared mid-hunt | Passphrase still works if recorded; fragments are re-findable |
 | Tampered state | Accepted. Unknown IDs are ignored when counting. Not access control: the cookie is |
-| API unreachable or env missing | Lock screen prints `connection refused. try again.`; the gate fails closed (404); `hunt()` logs `signal lost` for secret fragments |
-| Mobile | Triggers never fire, `hunt()` is not defined, indicator never appears, `/root` shows a plain desktop-only message |
+| API unreachable or env missing | Lock screen and `su` print `connection refused`; the gate fails closed (404); `hunt` prints `signal lost` for secret fragments |
+| Mobile | Triggers never fire, the site console never starts, indicator never appears, `/root` shows a plain desktop-only message |
 | Vercel does not serve a new file | Verified on a preview deployment before merge; see Testing |
 
 ## Testing
@@ -260,3 +271,4 @@ Revised 2026-10-01:
 9. **The answer moved server-side.** The passphrase, the unlock flag, and the shell's code were all readable or forgeable from the browser, and this file (served publicly) listed every answer. Added the Server half above, rotated every fragment, and added `.vercelignore` so `docs/`, `tests/`, `tests.html`, and `README.md` are not deployed. The pre-rotation answers in git history no longer work.
 10. **More shell commands.** Added `shell/commands.js` and `shell/matrix.js`; see Commands.
 11. **Corruption.** The site degrades with progress; see Corruption. `fsck` / `corrupt` in the shell switch it off and on.
+12. **Site console.** The hunt moved from the devtools `hunt()` function into a console built into the site (`` Ctrl+` ``), including the passphrase (`su root`); devtools keeps the clues. See Site console.

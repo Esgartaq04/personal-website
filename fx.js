@@ -49,6 +49,10 @@ export function initFx(progressStore, { rooted: startRooted = false } = {}) {
   refreshFx(true)
 }
 
+export function isRooted() {
+  return rooted
+}
+
 export function setRooted(value) {
   rooted = value
   if (store) refreshFx()

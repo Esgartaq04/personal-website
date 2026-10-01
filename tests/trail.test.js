@@ -129,10 +129,15 @@ test('trail: nextHint is null once everything is found', () => {
   assertEqual(nextHint(state), null)
 })
 
-test('trail: bannerText lines share one width and mention hunt()', () => {
+test('trail: bannerText lines share one width and point at the site console', () => {
   const lines = bannerText().split('\n')
   assert(lines.every(line => line.length === lines[0].length), 'banner lines are ragged')
-  assert(bannerText().includes('hunt()'))
+  assert(bannerText().includes('ctrl+`'))
+  assert(!bannerText().includes('hunt()'), 'the devtools hunt() is gone')
+})
+
+test('trail: the first lead sends players to the site console', () => {
+  assert(fragmentById('console').hint.includes('ctrl+`'))
 })
 
 const KONAMI_KEYS = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a']

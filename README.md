@@ -28,6 +28,8 @@ config.ex.js                  — EmailJS config template
 config.js                     — EmailJS config, actually loaded
 assets/                       — favicon, resume PDF, success GIF
 eggs.js                       — easter egg hunt, loaded on every page
+site-console.js               — the in-site console (ctrl+`) where the hunt is played
+cli/engine.js                 — command engine shared by the site console and the /root shell
 fx.js                         — "corruption" effects that grow with hunt progress
 hunt/                         — hunt rules, progress state, corruption stages, rain model (public)
 root.html         /root       — hidden shell; not in the nav
@@ -120,6 +122,25 @@ The site hides a scavenger hunt that ends in a playable shell at `/root`. The de
 
 The hunt follows the navigation rules above without touching `script.js`: every listener in `eggs.js` binds once to `document`, which survives the `<main>` swap, so nothing is ever orphaned or bound twice.
 
+### The site console
+
+Devtools is where the clues are (the console banner, page source, `robots.txt`); the playing happens in a console built into the site. **`` Ctrl+` ``** (the VS Code terminal shortcut) toggles a drop-down terminal on any page except `/root`. Nothing on the page advertises it; the devtools banner does.
+
+| Command | Does |
+|---|---|
+| `hunt` | Claims the first fragment, then shows progress and the next lead |
+| `hunt <text>` | Logs a fragment found in the source, e.g. the about-page comment |
+| `hint` | Shows only the next lead |
+| `su root` | Asks for the passphrase (masked, never in history); on success, opens `/root` |
+| `whoami`, `clear`, `exit`, `help` | As you'd expect. Esc or `` Ctrl+` `` also closes |
+
+The cursor triple-click and the Konami code still award their fragments on their own. `hunt()` in devtools is now a stub that only says to use the site console.
+
+- **Commands:** `hunt/console.js` (pure; the store, claim and unlock are injected, so it is unit-tested without a DOM).
+- **UI:** `site-console.js`. It is built on first open, so visitors who never press the chord get no extra DOM, and it lives outside `<main>`, so it stays open with its history across page transitions.
+- **Engine:** `cli/engine.js` holds the tokenizer, registry, `execute` (sync or async, plus `!!`), history and completion. It was split out of `shell/core.js`, which is gated, and the shell re-exports it.
+- **Key match:** the chord matches the physical key (`event.code === 'Backquote'`), so it works on non-US layouts; a plain backtick just types.
+
 ### How the hunt is protected
 
 Everything sent to a browser can be read, so the answer is not sent:
@@ -129,10 +150,11 @@ Everything sent to a browser can be read, so the answer is not sent:
 | Three secret fragments | `HUNT_FRAGMENTS` env var. The browser gets each from `POST /api/fragment` when its trigger fires |
 | Two public fragments | `about.html` comment and `sys_dump.txt` (finding them in source is the puzzle) |
 | Passphrase check | `POST /api/unlock`, timing-safe compare, 500 ms delay on failure |
+| The passphrase | Typed in the site console (`su root`) or on `/root`'s lock screen; both call `/api/unlock` |
 | "Unlocked" | Signed `egt_root` cookie (HMAC with `HUNT_SECRET`), HttpOnly, Secure, SameSite=Strict, 30 days |
 | The shell's code | `middleware.js` returns 404 for `/shell.js` and `/shell/*` without a valid cookie |
 
-`localStorage` (`egt.eggs`) only holds progress for the badge and `hunt()` report. Editing it cannot open the shell.
+`localStorage` (`egt.eggs`) only holds progress for the badge and the console's `hunt` report. Editing it cannot open the shell.
 
 The limit, by design: the cursor, Konami, and console triggers run in the browser, so someone who reads `eggs.js` can call `/api/fragment` directly. That takes deliberate reverse-engineering, unlike reading a string out of the source.
 
