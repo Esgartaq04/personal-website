@@ -2,7 +2,8 @@
 // No DOM. shell.js renders whatever these return.
 //
 // A command is { desc, usage?, hidden?, run(args, ctx) } and returns
-// { out, clear?, exit?, takeover?, navigate?, download? }. navigate and download are URLs shell.js acts on.
+// { out, clear?, exit?, takeover?, navigate?, download?, fx? }. navigate and download are URLs shell.js
+// acts on; fx means the corruption setting changed and the page should re-apply it.
 // A takeover is handed a host { draw(text), onKey(handler), finish(lines) } and owns the screen
 // until it calls finish. That is the whole interface a game needs.
 

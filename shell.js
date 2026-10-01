@@ -70,6 +70,7 @@ function submit(value) {
   if (result.clear) output.replaceChildren()
   print(result.out)
   if (result.download) download(result.download)
+  if (result.fx) document.dispatchEvent(new Event('egt:fx')) // fx.js re-reads the setting.
   if (result.exit || result.navigate) {
     mode = 'exiting'
     inputLine.hidden = true

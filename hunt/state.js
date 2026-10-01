@@ -5,7 +5,7 @@
 export const STORAGE_KEY = 'egt.eggs'
 
 export function emptyState() {
-  return { found: [], texts: {}, snakeHigh: 0 }
+  return { found: [], texts: {}, snakeHigh: 0, fx: 'on' }
 }
 
 export function parseState(raw) {
@@ -25,11 +25,12 @@ export function parseState(raw) {
     }
   }
   const snakeHigh = Number.isInteger(data.snakeHigh) && data.snakeHigh > 0 ? data.snakeHigh : 0
-  return { found, texts, snakeHigh }
+  const fx = data.fx === 'off' ? 'off' : 'on' // The corruption effects; `fsck` in the shell turns them off.
+  return { found, texts, snakeHigh, fx }
 }
 
 export function serializeState(state) {
-  return JSON.stringify({ found: state.found, texts: state.texts, snakeHigh: state.snakeHigh })
+  return JSON.stringify({ found: state.found, texts: state.texts, snakeHigh: state.snakeHigh, fx: state.fx })
 }
 
 // Returns localStorage if it is usable, else null. Private browsing and blocked site data both throw.
