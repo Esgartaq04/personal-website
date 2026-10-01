@@ -7,7 +7,7 @@
 // three, and therefore the passphrase, exist only server-side (HUNT_FRAGMENTS, see lib/hunt.js):
 // the browser gets each one from /api/fragment when its trigger fires, and /api/unlock checks the answer.
 export const FRAGMENTS = [
-  { id: 'console', text: null, hint: 'type hunt() in the console.' },
+  { id: 'console', text: null, hint: 'open the site console (ctrl+`) and type hunt.' },
   { id: 'cursor', text: null, hint: 'the cursor on the home page keeps blinking at you. knock three times.' },
   { id: 'comment', text: 'ash_', hint: 'some pages say more than they render. read the source of the about page.' },
   { id: 'konami', text: null, hint: 'an old cheat code still works here. up, up...' },
@@ -68,7 +68,14 @@ export function nextHint(state) {
 }
 
 export function bannerText() {
-  const lines = ['SYSTEM NOTICE', '', '5 fragments are hidden in this system.', 'type hunt() to recover the first.']
+  const lines = [
+    'SYSTEM NOTICE',
+    '',
+    '5 fragments are hidden in this system.',
+    'this site has a console of its own.',
+    'press ctrl+` on any page to open it,',
+    'then type: hunt',
+  ]
   const width = Math.max(...lines.map(line => line.length)) + 4
   const border = `+${'-'.repeat(width)}+`
   return [border, ...lines.map(line => `|  ${line.padEnd(width - 2)}|`), border].join('\n')

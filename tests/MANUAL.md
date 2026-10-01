@@ -10,23 +10,28 @@ Reset between runs: `localStorage.removeItem('egt.eggs')` in the console, delete
 
 ## Hunt
 
-- [ ] On a fresh load of any page, the console shows the `SYSTEM NOTICE` box telling you to type `hunt()`, and no errors other than the known `/_vercel/speed-insights/script.js` 404.
-- [ ] Before anything is found, no `[n/5]` appears next to the brand line.
-- [ ] `hunt()` prints `[1/5]`, the masked list with slot 1 filled, and a lead about the home page cursor. The brand line now shows `[1/5]`, and a toast reads `FRAGMENT 1/5 ACQUIRED :: "<console fragment>"`. The Network tab shows one `POST /api/fragment`.
-- [ ] Calling `hunt()` again prints progress without a second toast.
+- [ ] On a fresh load of any page, the devtools console shows the `SYSTEM NOTICE` box telling you to press `` ctrl+` `` and type `hunt`, and no errors other than the known `/_vercel/speed-insights/script.js` 404.
+- [ ] Before anything is found, no `[n/5]` appears next to the brand line, and there is no `.site-console` element in the page.
+- [ ] `hunt()` in devtools prints only `` > wrong console. press ctrl+` on the page. `` and changes nothing.
+- [ ] A plain backtick does nothing special anywhere. `` Ctrl+` `` drops the site console down with the input focused; `` Ctrl+` `` again or Esc closes it and returns focus.
+- [ ] In the site console, `hunt` prints `[1/5]`, the masked list with slot 1 filled, and a lead about the home page cursor. The brand line now shows `[1/5]`, and a toast reads `FRAGMENT 1/5 ACQUIRED :: "<console fragment>"`. The Network tab shows one `POST /api/fragment`.
+- [ ] Running `hunt` again prints progress without a second toast. Up arrow recalls earlier commands; Tab completes command names.
 - [ ] On the home page, clicking the blinking cursor three times quickly logs the cursor fragment with a toast. Three slow clicks, more than 1.5s apart, do nothing.
 - [ ] Navigate away from home and back using the nav, not a reload. The cursor trigger still works, and fires one toast rather than two. *Needs a real, visible browser tab: the page swap waits on `requestAnimationFrame`.*
-- [ ] After that navigation, the brand line still shows the counter.
-- [ ] View source on the about page: the comment above `IDENTITY CONFIRMED` shows `ash_` and `hunt("ash_")`. Running it logs fragment 3.
+- [ ] After that navigation, the brand line still shows the counter, and the site console still has its history.
+- [ ] View source on the about page: the comment above `IDENTITY CONFIRMED` shows `ash_` and `hunt ash_`. Running that in the site console logs fragment 3.
 - [ ] On any page with nothing focused, the Konami code (up up down down left right left right B A) logs the Konami fragment. Holding Shift for B and A still works.
-- [ ] Click into the contact form's name field and type the Konami code there. Nothing is logged.
-- [ ] `/robots.txt` contains `# Disallow: /sys_dump.txt`. `/sys_dump.txt` shows `0xd4` and `hunt("0xd4")`. Running it logs fragment 5.
-- [ ] With all five found, `hunt()` says all fragments are recovered and points at `/root`.
-- [ ] `hunt("nope")` prints `unknown fragment` and changes nothing.
+- [ ] Click into the contact form's name field and type the Konami code there. Nothing is logged. The same inside the site console's input.
+- [ ] `/robots.txt` contains `# Disallow: /sys_dump.txt`. `/sys_dump.txt` shows `0xd4` and `hunt 0xd4`. Running that in the site console logs fragment 5.
+- [ ] With all five found, `hunt` says all fragments are recovered and points at `su root`.
+- [ ] `hunt nope` prints `unknown fragment` and changes nothing.
+- [ ] `su root`: the prompt becomes `Password: ` and the input is masked. A wrong passphrase prints `su: Authentication failure` in red; the third adds a `hint:` line. `history`-style recall (Up arrow) never shows the passphrase.
+- [ ] The right passphrase prints `ACCESS GRANTED` and lands on `/root` already in the shell (`session restored`). Back on any page, the console prompt is `root@egt:~#` and `whoami` prints `root`.
+- [ ] On `/root`, `` Ctrl+` `` does not open the site console.
 - [ ] With the API down (stop the server's API, or block `/api/*` in devtools), the Konami code logs `signal lost` and no toast; once the API is back it works.
 - [ ] View source of every served `.js` file: none of the three secret fragment texts appear anywhere.
-- [ ] In mobile/touch emulation, or on a phone, reload: no banner, `typeof hunt` is `"undefined"`, and three taps on the cursor log nothing. If devtools emulation does not flip `(pointer: coarse)`, confirm on a real phone.
-- [ ] With site data blocked for the origin, every page still loads and `hunt()` still works for the session.
+- [ ] In mobile/touch emulation, or on a phone, reload: no banner, `typeof hunt` is `"undefined"`, no site console, and three taps on the cursor log nothing. If devtools emulation does not flip `(pointer: coarse)`, confirm on a real phone.
+- [ ] With site data blocked for the origin, every page still loads and the site console's `hunt` still works for the session.
 
 ## Corruption
 

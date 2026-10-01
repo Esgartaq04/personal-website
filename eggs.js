@@ -1,4 +1,5 @@
-// Easter egg hunt: wires hunt/trail.js to the page.
+// Easter egg hunt: wires hunt/trail.js to the page. Devtools shows the clues (this banner, page
+// source, sys_dump.txt); the playing happens in the site console, opened with ctrl+` (site-console.js).
 // Every listener binds once to document. script.js swaps <main> on navigation and document survives
 // that swap, so nothing here ever needs re-binding and nothing can fire twice.
 
@@ -7,19 +8,18 @@ import {
   bannerText,
   countFound,
   fragmentById,
-  fragmentByText,
   fragmentText,
   isTouchOnly,
   markFound,
-  nextHint,
   progressLabel,
   pushKey,
   registerClick,
   shouldIgnoreKeyTarget,
-  statusLines,
   toastText,
 } from './hunt/trail.js'
-import { fetchRooted, initFx, refreshFx, toastWarning } from './fx.js'
+import { fetchRooted, initFx, isRooted, refreshFx, setRooted, toastWarning } from './fx.js'
+import { SIGNAL_LOST } from './hunt/console.js'
+import { createSiteConsole, isConsoleChord } from './site-console.js'
 
 const STYLE = 'color:#00ff41;font-family:monospace'
 const store = createStore(safeStorage())
@@ -32,9 +32,20 @@ if (!isTouchOnly(window.matchMedia ? query => window.matchMedia(query) : undefin
 
 function start() {
   console.log(`%c${bannerText()}`, STYLE)
-  window.hunt = hunt
+  // The hunt used to be played here in devtools. It moved to the site console; this only points the way.
+  window.hunt = () => console.log('%c> wrong console. press ctrl+` on the page.', STYLE)
   renderIndicator()
   startFx()
+
+  // /root has its own terminal, which owns the keyboard there.
+  if (!/\/root(\.html)?$/.test(window.location.pathname)) {
+    const siteConsole = createSiteConsole({ store, claim, unlock, isRooted })
+    document.addEventListener('keydown', event => {
+      if (!isConsoleChord(event)) return
+      event.preventDefault()
+      siteConsole.toggle()
+    })
+  }
 
   let keyBuffer = []
   document.addEventListener('keydown', event => {
@@ -61,8 +72,9 @@ async function startFx() {
 }
 
 // Secret fragments have no text in the page's code; the server hands it over once the trigger fires.
+// Resolves to 'new', 'known' (already found, or a claim already in flight), or 'failed'.
 async function claim(id) {
-  if (pending.has(id) || !markFound(store.get(), id).isNew) return false
+  if (pending.has(id) || !markFound(store.get(), id).isNew) return 'known'
   const fragment = fragmentById(id)
   let text = fragmentText(fragment)
   if (text === null) {
@@ -70,17 +82,17 @@ async function claim(id) {
     text = await fetchFragment(id)
     pending.delete(id)
     if (text === null) {
-      console.log('%c> signal lost. that fragment did not come through. try again.', STYLE)
-      return false
+      console.log(`%c${SIGNAL_LOST}`, STYLE)
+      return 'failed'
     }
   }
   const result = markFound(store.get(), id, text)
-  if (!result.isNew) return false
+  if (!result.isNew) return 'known'
   const state = store.update(() => result.state)
   refreshFx()
   showToast(toastText({ ...fragment, text }, countFound(state)))
   renderIndicator()
-  return true
+  return 'new'
 }
 
 async function fetchFragment(id) {
@@ -98,27 +110,22 @@ async function fetchFragment(id) {
   }
 }
 
-// Calling hunt() at all proves the console was found, so every call claims fragment 1 first.
-// Returns nothing, so the console prints the report rather than a pending promise.
-function hunt(text) {
-  runHunt(text)
-}
-
-async function runHunt(text) {
-  await claim('console')
-  if (text !== undefined) {
-    const fragment = fragmentByText(text, store.get().texts)
-    if (!fragment) {
-      console.log('%c> unknown fragment. keep digging.', STYLE)
-      return
+// For `su root` in the site console. Same endpoint and cookie as /root's lock screen (lock.js).
+async function unlock(passphrase) {
+  try {
+    const response = await fetch('/api/unlock', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ passphrase }),
+    })
+    if (response.status === 200) {
+      setRooted(true)
+      return 'ok'
     }
-    await claim(fragment.id)
+    return response.status === 401 ? 'denied' : 'error'
+  } catch {
+    return 'error'
   }
-  const state = store.get()
-  const hint = nextHint(state)
-  const report = [`> ${progressLabel(state)} fragments recovered`, ...statusLines(state)]
-  report.push(hint ? `> next lead: ${hint}` : '> all fragments recovered. assemble them in order and visit /root.')
-  console.log(`%c${report.join('\n')}`, STYLE)
 }
 
 // The brand line sits in the header, outside <main>, so the badge survives SPA navigation.

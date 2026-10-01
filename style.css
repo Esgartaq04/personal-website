@@ -667,3 +667,45 @@ textarea:focus {
     display: none;
   }
 }
+
+/* Site console (site-console.js): a drop-down terminal toggled with ctrl+`. The inner .term-* classes
+   are the /root shell's, so both terminals read the same. */
+.site-console {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 8000; /* Above the page and rain, below the transition overlay and toasts. */
+  display: flex;
+  height: 45vh;
+  min-height: 220px;
+  padding: 14px 20px 10px;
+  background: rgba(13, 17, 23, 0.96);
+  border-bottom: 1px solid var(--term-green);
+  box-shadow: 0 0 20px rgba(0, 143, 17, 0.45);
+  font-size: 0.95rem;
+  transform: translateY(-105%);
+  visibility: hidden;
+  transition: transform 0.18s ease-out, visibility 0s linear 0.18s;
+}
+.site-console.open {
+  transform: none;
+  visibility: visible;
+  transition: transform 0.18s ease-out;
+}
+.site-console-term {
+  width: 100%;
+  max-width: 1160px;
+  margin: 0 auto;
+}
+/* From stage 2 the console arrives with the same jolt as the corruption bursts. */
+.fx-2 .site-console.open {
+  animation: fx-split 0.25s steps(3) 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .site-console,
+  .site-console.open {
+    transition: none;
+    animation: none;
+  }
+}
