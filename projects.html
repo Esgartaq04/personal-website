@@ -44,9 +44,37 @@
                 <h2>/home/user/deployments/</h2>
                 <div class="project-grid">
                     <div class="project-card">
+                        <h3>Campus Connect</h3>
+                        <p>College-decision site for first-gen and international students, built with a student team and live with an EN/ES toggle. Prototyping school comparison, a filterable scholarship hub, and an alumni placement dashboard, designed to feel welcoming.</p>
+                        <div class="tech-stack">[React] [Tailwind CSS]</div>
+                        <div class="tech-stack">[ link pending ]</div>
+                        <!-- TODO: replace the line above with <a href="REPO_URL" target="_blank">./compare_schools</a> -->
+                    </div>
+                    <div class="project-card">
+                        <h3>Resume Review</h3>
+                        <p>Full-stack resume reviewer that takes a PDF resume and a job description and returns structured feedback over a single typed JSON contract. Routes work across Claude Haiku and Sonnet with structured outputs validated against Pydantic schemas, and hardens every untrusted input: resource-limited PDF parsing, request-size caps enforced before the body is read, and prompt-injection sanitization.</p>
+                        <div class="tech-stack">[Python] [FastAPI] [React] [TypeScript] [Claude API]</div>
+                        <div class="tech-stack">[ link pending ]</div>
+                        <!-- TODO: replace the line above with <a href="REPO_URL" target="_blank">./review_resume</a> -->
+                    </div>
+                    <div class="project-card">
+                        <h3>Email Outreach CLI</h3>
+                        <p>Command-line research tool for cold outreach that skips the traditional hiring funnel: it finds companies from job-board hiring signals, identifies people who can hire directly, and surfaces each company's likely bottlenecks, backed by 2+ independent public sources. SQLite-backed pipeline with a swappable contact-enrichment adapter and an email-verification gate, rendering a static HTML report.</p>
+                        <div class="tech-stack">[Python] [SQLite] [HTML]</div>
+                        <div class="tech-stack">[ link pending ]</div>
+                        <!-- TODO: replace the line above with <a href="REPO_URL" target="_blank">./find_leads</a> -->
+                    </div>
+                    <div class="project-card">
+                        <h3>Web LaTeX Editor</h3>
+                        <p>Browser-based LaTeX editor with a split pane: syntax-highlighted source on the left, a live-updating rendered preview on the right. Exports both the .tex source and a compiled PDF, deployed entirely on Vercel with compilation designed around serverless execution limits.</p>
+                        <div class="tech-stack">[TypeScript] [React] [Vercel]</div>
+                        <div class="tech-stack">[ link pending ]</div>
+                        <!-- TODO: replace the line above with <a href="REPO_URL" target="_blank">./compile_tex</a> -->
+                    </div>
+                    <div class="project-card">
                         <h3>Algorithmic Trading Bot</h3>
-                        <p>Live paper-trading bot on 15-minute bars using Kelly Criterion position sizing and automated risk control, growing a $10,000 simulated account to $15,000 (~50% return) over 3 months of continuous operation. Fault-tolerant market-data streaming recovers from frozen ticks and API lease locks at 100% uptime.</p>
-                        <div class="tech-stack">[Python] [Docker] [JSON]</div>
+                        <p>Autonomous bot trading Kalshi event contracts, started at ProphetHacks (UChicago's AI forecasting hackathon, Trading Track) on a $10,000 simulated account. LLM binary forecasting with calibration blending and ensembling, sized by the Kelly Criterion with automated risk controls. Kept running afterward as a live paper-trading system on 15-minute bars, growing the account to $15,000 over 3 months, with fault-tolerant market-data streaming at 100% uptime.</p>
+                        <div class="tech-stack">[Python] [LLMs] [Docker]</div>
                         <div class="tech-stack">[ link pending ]</div>
                         <!-- TODO: replace the line above with <a href="REPO_URL" target="_blank">./execute_trade</a> -->
                     </div>
@@ -58,36 +86,38 @@
                         <!-- TODO: replace the line above with <a href="REPO_URL" target="_blank">./compile_solution</a> -->
                     </div>
                     <div class="project-card">
+                        <h3>Pathfind Careers</h3>
+                        <p>Webhook-triggered n8n pipeline chaining 4 OpenAI agents (CV analysis, candidate clarification, match summary, cover-letter and interview-prep content) around a live Adzuna job search. Code steps validate JSON at every handoff so recommendations come from live listings, and a hosted web frontend lets anyone upload a CV and get results.</p>
+                        <div class="tech-stack">[n8n] [OpenAI API] [Adzuna API] [React] [GitHub Pages]</div>
+                        <div class="tech-stack">[ link pending ]</div>
+                        <!-- TODO: replace the line above with <a href="REPO_URL" target="_blank">./match_jobs</a> -->
+                    </div>
+                    <div class="project-card">
                         <h3>WikiVerify</h3>
-                        <p>Human-augmented AI pipeline that verifies Wikipedia citations against source documents. Owned system architecture, requirements gathering, and the reviewer dashboard; killed a token-per-minute rate-limit bottleneck by replacing LLM-based claim extraction with deterministic regex parsing.</p>
+                        <p>Human-augmented AI pipeline that has verified 1,800+ citations across 100+ Wikipedia articles against their sources, with a reviewer dashboard keeping a human accountable for every automated judgment. Replaced LLM claim extraction with deterministic regex parsing to remove a rate-limit bottleneck, holding processing under 10 seconds per claim.</p>
                         <div class="tech-stack">[n8n] [OpenAI API] [Firestore] [Cloud Storage]</div>
                         <div class="tech-stack">[ link pending ]</div>
                         <!-- TODO: replace the line above with <a href="REPO_URL" target="_blank">./verify_source</a> -->
                     </div>
                     <div class="project-card">
                         <h3>Content Creator Analytics Platform</h3>
-                        <p>Third place at SparkHacks '26. Architected and deployed an end-to-end analytics platform in a 24-hour build, with Express/Firebase pipelines load-tested to 500+ concurrent users.</p>
+                        <p>Third of 30 teams at SparkHacks '26. Architected and deployed an end-to-end creator analytics platform in a 24-hour build, with Express/Firebase pipelines load-tested to 500+ concurrent users serving a React and TypeScript frontend.</p>
                         <div class="tech-stack">[TypeScript] [React] [Express] [Firebase]</div>
                         <div class="tech-stack">[ link pending ]</div>
                         <!-- TODO: replace the line above with <a href="REPO_URL" target="_blank">./trace_metrics</a> -->
                     </div>
                     <div class="project-card">
+                        <h3>Documind AI</h3>
+                        <p>AI-powered document analysis platform for querying and summarizing complex PDFs in natural language, using RAG pipelines over REST APIs and cloud-hosted infrastructure. Delivered as a working MVP at the Michigan DevFest hackathon.</p>
+                        <div class="tech-stack">[React Native] [Python] [TypeScript] [IBM Cloud] [Firebase] [Docker]</div>
+                        <div class="tech-stack">[ link pending ]</div>
+                        <!-- TODO: replace the line above with <a href="REPO_URL" target="_blank">./query_docs</a> -->
+                    </div>
+                    <div class="project-card">
                         <h3>Unbounded</h3>
-                        <p>2d Plataformer Game made using Unity</p>
-                        <div class="tech-stack">[ShaderLab] [C#] [HLSL]</div>
+                        <p>Video game project: developed core programming logic, authored testing procedures, implemented foundational design elements, and optimized gameplay loops for stable runtime performance.</p>
+                        <div class="tech-stack">[C#] [Unreal Engine]</div>
                         <a href="https://github.com/FernandoLpz0911/Unbounded" target="_blank">./run_script</a>
-                    </div>
-                    <div class="project-card">
-                        <h3>AI Resume Checker</h3>
-                        <p>AI app that uses hugging face library to scan resume and documents to critique their resume, and parse and simplify data for the individual.</p>
-                        <div class="tech-stack">[HTML] [Python] [JavaScript] [PowerShell] [Shell] [CSS]</div>
-                        <a href="https://github.com/FernandoLpz0911/AI-Resume-and-Document-Checker" target="_blank">./inspect_headers</a>
-                    </div>
-                    <div class="project-card">
-                        <h3>Quantify</h3>
-                        <p>This Project is a tool for Small Businesses that will allow them to quantify their data.</p>
-                        <div class="tech-stack">[HTML] [CSS] [JavaScript] [PostgreSQL] [Python]</div>
-                        <a href="https://github.com/majorandres/Quantify" target="_blank">./decode</a>
                     </div>
                 </div>
             </section>

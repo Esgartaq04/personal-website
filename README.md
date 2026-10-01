@@ -99,8 +99,8 @@ Pushes deploy through Vercel. Each page includes the Speed Insights script, whic
 
 ## Open items
 
-- [ ] **Project links.** The four newest cards in `projects.html` (Algorithmic Trading Bot, Interview Prep Bot, WikiVerify, Content Creator Analytics Platform) render `[ link pending ]` instead of a repo link. Each has an HTML comment marking exactly where the anchor goes.
-- [ ] **Resume PDF.** `assets/Resume-current.pdf` was compiled before a LaTeX fix to the trading-bot bullet. The site's HTML uses the corrected figures; the downloadable PDF should be re-exported to match.
+- [ ] **Project links.** Every card in `projects.html` except Unbounded renders `[ link pending ]` instead of a repo or live link. Each has an HTML comment marking exactly where the anchor goes.
+- [ ] **Resume PDF.** The site's HTML now follows the master resume (Oct. 2026). `assets/Resume-current.pdf` is an older one-page cut and should be re-exported to match.
 - [ ] **Home page role line.** `index.html` reads `Role: Software Engineer // AI & Financial Systems`. This wording was drafted, not taken from the resume — confirm or replace it.
 - [ ] **`assets/Resume-previous.pdf`.** An untracked local backup of the superseded resume. Decide whether to keep it locally, commit it, or delete it.
 - [ ] **Social links.** `contact.html` has a commented-out Twitter link and a `add better link later on` note.

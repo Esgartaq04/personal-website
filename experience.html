@@ -52,19 +52,41 @@
                     <ul>
                         <li>Shipped a production self-service AI pipeline platform on AWS with configurable ingestion, extraction, and multi-provider LLM support over PDF/HTML, enabling 2,000+ non-technical analysts across 5 global offices to build custom RAG workflows on 1,000+ financial documents.</li>
                         <li>Cut financial data-collection turnaround from a 5-week JSON build-and-test cycle to under a minute; adopted by 2 teams now extending the platform, and endorsed by senior leadership as the foundation for a document tagging and search tool.</li>
-                        <li>Reduced rule authoring from 2 weeks to 2 minutes on a production data-validation engine governing financial data quality, refactoring the Vue frontend to cut duplicate code and load times and shipping a guided wizard over FastAPI/MySQL endpoints validated by golden datasets.</li>
+                        <li>Reduced rule authoring from 2 weeks to 2 minutes on a production data-validation engine governing financial data quality, shipping a guided wizard over FastAPI/MySQL endpoints gated by golden-dataset checks that verified generated rules against known-good output.</li>
+                        <li>Refactored the Vue frontend into reusable components from code-review feedback, cutting duplicate code and load times.</li>
+                        <li>Provisioned and managed the platform's cloud storage layer on Amazon S3 and DynamoDB.</li>
                     </ul>
                 </div>
 
                 <div class="exp-entry">
                     <div class="exp-head">
-                        <span class="exp-role">Software Engineering Intern</span>
-                        <span class="exp-date">May 2024 &ndash; Sep. 2024</span>
+                        <span class="exp-role">Technical Lead, Member Platform</span>
+                        <span class="exp-date">Feb. 2026 &ndash; Present</span>
                     </div>
-                    <div class="exp-meta">University of Illinois at Chicago &middot; Chicago, IL</div>
+                    <div class="exp-meta">Society of Hispanic Professional Engineers (SHPE), UIC Chapter &middot; Chicago, IL</div>
                     <ul>
-                        <li>Built the Python dependency-analysis engine for an enterprise Policy as Code compliance framework, parsing formal GDPR rule definitions to map inter-rule dependencies and expose ordering constraints for automated regulatory verification.</li>
-                        <li>Translated GDPR regulatory language into formal, machine-checkable specifications and documented rule semantics for the tooling used to audit PII-handling software.</li>
+                        <li>Lead a team of junior engineers building the chapter's member platform from the ground up, establishing coding standards and reviewing contributions, while personally owning the backend, all cloud infrastructure, and most of the frontend.</li>
+                        <li>Serve 150+ members and 23 officers, replacing a Google Forms and spreadsheet process with QR-code attendance, Google Calendar event sync, and an automated points leaderboard that determines which members earn fully sponsored convention travel.</li>
+                        <li>Gathered requirements from the chapter board to solve an ambiguous integrity problem &mdash; members signing in for absent friends &mdash; shipping rotating check-in codes, anomaly flagging, and an officer review queue that surfaced attendance inflated by 30%.</li>
+                        <li>Defined the full stack in Terraform on one GCP project (Cloud Run, Cloud SQL Postgres on a private VPC, Firebase Auth, GitHub CI/CD) at $11/month, backed by 201 passing tests across 25 API endpoints so a committee that turns over annually can maintain it.</li>
+                        <li>Owned the platform's security posture: least-privilege IAM roles, authenticated-only access to member data, zero long-lived service-account keys, branch protection requiring review before any merge to main, and budget alerts to cap spend.</li>
+                        <li>Built an automated WCAG 2.2 AA accessibility gate in GitHub Actions (Playwright + axe-core) that scans all 18 screens of the React Native Web app as both member and officer, failing any pull request that introduces a violation.</li>
+                        <li>Resolved 156 violations on 17 of 18 screens (avg. Lighthouse 91 &rarr; 100) by moving color contrast into unit-tested design tokens (all text 4.5:1), fixing ARIA state on radio and checkbox controls, and labeling form inputs.</li>
+                    </ul>
+                </div>
+
+                <div class="exp-entry">
+                    <div class="exp-head">
+                        <span class="exp-role">Control Systems &amp; Autonomy Team Member</span>
+                        <span class="exp-date">Jan. 2026 &ndash; Present</span>
+                    </div>
+                    <div class="exp-meta">UIC Lunabotics &middot; Chicago, IL</div>
+                    <ul>
+                        <li>Worked on LiDAR and computer-vision perception for the robot's autonomy stack; the team delivered one-button autonomous excavation, with the robot digging regolith simulant unassisted in NASA's physical competition arena.</li>
+                        <li>Wrote ROS nodes for each servo motor, giving the control stack per-actuator command of the robot.</li>
+                        <li>Built the operator control station with the control systems team: a UI that streams the robot's camera feed to the driver laptop over NASA's competition network, which caps each team at 4,000 bits per second.</li>
+                        <li>Designed a custom compression algorithm that fits a live camera feed inside the 4 kbps limit, giving operators usable video to drive from.</li>
+                        <li>Integrated a USB game controller on the laptop to teleoperate the robot in real time over the same bandwidth-limited link.</li>
                     </ul>
                 </div>
 
@@ -75,18 +97,23 @@
                     </div>
                     <div class="exp-meta">University of Illinois at Chicago &middot; Chicago, IL</div>
                     <ul>
-                        <li>Tutor 50+ students per semester across 4 semesters in algorithms and quantitative coursework: Computer Algorithms (MCS 401), Data Structures (CS 251), Systems Programming (CS 361), Cryptography (CS 488), Machine Organization (CS 261), CS 111/141/151, and Calculus I&ndash;III (MATH 180/181/210).</li>
+                        <li>Tutor 50+ students per semester across 4 semesters in Computer Algorithms (MCS 401), Data Structures (CS 251), Systems Programming (CS 361), Cryptography (CS 488), Machine Organization (CS 261), CS 111/141/151, and Calculus I&ndash;III (MATH 180/181/210).</li>
+                        <li>Focus sessions on debugging, algorithm analysis, and maintainable code, articulating technical concepts for audiences at widely different levels of background in both one-on-one and group settings.</li>
+                        <li>Demonstrated leadership, patience, and accountability in a high-responsibility academic role.</li>
                     </ul>
                 </div>
 
                 <div class="exp-entry">
                     <div class="exp-head">
-                        <span class="exp-role">Embedded Systems Team Member</span>
-                        <span class="exp-date">Jan. 2026 &ndash; Present</span>
+                        <span class="exp-role">Software Engineering Intern</span>
+                        <span class="exp-date">May 2024 &ndash; Sep. 2024</span>
                     </div>
-                    <div class="exp-meta">UIC Lunabotics &middot; Chicago, IL</div>
+                    <div class="exp-meta">University of Illinois at Chicago &middot; Chicago, IL</div>
                     <ul>
-                        <li>Develop firmware and embedded control code for competition robot subsystems, debugging hardware/software integration across mechanical, electrical, and software subteams to improve operational reliability.</li>
+                        <li>Built the GDPR dependency analyzer for an enterprise Policy as Code framework spanning all 99 GDPR articles, mapping relationships between policies to expose ordering constraints previously derived by hand.</li>
+                        <li>Owned 2 of the 3 components in a compliance toolchain built with a 4-person research group, adding the parser that translates Legalease policy strings into Python objects on top of the analyzer, feeding a static analyzer that verifies Python programs against a given policy.</li>
+                        <li>Translated GDPR regulatory language into formal, machine-checkable specifications and documented rule semantics for the tooling used to audit PII-handling software.</li>
+                        <li>Deployed compliance verification tools against real-world PII-handling software, identifying non-compliant data access patterns, and audited multiple open-source enterprise systems to benchmark performance and reliability.</li>
                     </ul>
                 </div>
 
@@ -95,14 +122,12 @@
 
                     <div class="exp-entry">
                         <div class="exp-head">
-                            <span class="exp-role">Outreach Committee &amp; Web Development Committee</span>
-                            <span class="exp-date">Fall 2025 &ndash; Spring 2026</span>
+                            <span class="exp-role">Technical Lead, Member Platform &mdash; UIC Chapter</span>
+                            <span class="exp-date">Feb. 2026 &ndash; Present</span>
                         </div>
-                        <div class="exp-meta">Society of Hispanic Professional Engineers (SHPE) &middot; University of Illinois at Chicago</div>
+                        <div class="exp-meta">Society of Hispanic Professional Engineers (SHPE) &middot; Chicago, IL</div>
                         <ul>
-                            <li>Led high school visits teaching students about pathways into college and engineering.</li>
-                            <li>Ran school and corporate outreach for D&iacute;a de Ciencias and Equipando Padres, the chapter's flagship community events.</li>
-                            <li>Organized DDC x EP Spring 2026, a K&ndash;12 STEM and parent empowerment event hosted at Northwestern.</li>
+                            <li>Organized DDC x EP Spring 2026, a K&ndash;12 STEM and parent empowerment event hosted at Northwestern (April 25, 2026).</li>
                             <li>Built a volunteer sign-up system using Google Forms and Apps Script.</li>
                         </ul>
                     </div>
@@ -116,8 +141,11 @@
                             <span class="exp-role">University of Illinois at Chicago</span>
                             <span class="exp-date">Aug. 2023 &ndash; May 2027</span>
                         </div>
-                        <div class="exp-meta">B.S. Computer Science, Concentration in Software Engineering &middot; Minor in Mathematics &middot; Chicago, IL</div>
-                        <p class="coursework">> Coursework: Computer Algorithms, Data Structures, Systems Programming, Probability &amp; Statistics, Cryptography, Applied Linear Algebra, Database Systems, Machine Organization, Data and AI</p>
+                        <div class="exp-meta">B.S. Computer Science, Concentration in Software Engineering &middot; Minors in Mathematics and Philosophy &middot; Chicago, IL</div>
+                        <p class="coursework">&gt; Coursework: Data Structures, Computer Algorithms, Systems Programming, Database Systems, Machine Organization, Cryptography, Mathematical Computation, Applied Linear Algebra, Probability &amp; Statistics, Economics and Computation, Data and AI</p>
+                        <p class="coursework">&gt; CS 361 Systems Programming: epoll-based HTTP servers in C, POSIX threading and synchronization, socket programming.</p>
+                        <p class="coursework">&gt; Algorithms: dynamic programming, Bellman-Ford, sequence alignment, recurrence analysis.</p>
+                        <p class="coursework">&gt; CS 109: MATLAB heat diffusion simulation.</p>
                     </div>
 
                     <div class="exp-entry">
@@ -126,7 +154,7 @@
                             <span class="exp-date">Aug. 2021 &ndash; May 2023</span>
                         </div>
                         <div class="exp-meta">Associate in Business Administration, 4.0 GPA &mdash; earned concurrently with high school &middot; Chicago, IL</div>
-                        <p class="coursework">> Coursework: Financial Accounting, Budgeting &amp; Forecasting, Business Statistics, Operations Management, Business Ethics</p>
+                        <p class="coursework">&gt; Coursework: Financial Accounting, Budgeting &amp; Forecasting, Business Statistics, Operations Management, Business Ethics, Marketing, Management, Entrepreneurship, Business Analytics, Business Law, Corporate Finance</p>
                     </div>
                 </div>
             </section>
