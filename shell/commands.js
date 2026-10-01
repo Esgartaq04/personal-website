@@ -78,6 +78,8 @@ export function registerExtras(ctx) {
     out: [FORTUNES[Math.floor(c.rng() * FORTUNES.length) % FORTUNES.length]],
   }))
   add('cowsay', 'a cow says something', 'cowsay [text...]', args => ({ out: cowsay(args.join(' ') || 'moo') }))
+  add('fsck', 'repair the filesystem (turns the corruption off)', 'fsck', fsck)
+  add('corrupt', 'let the corruption back in', 'corrupt', corrupt)
   add('hiscore', 'show the snake high score', 'hiscore', (args, c) => {
     const high = c.store ? c.store.get().snakeHigh : 0
     return { out: [high > 0 ? `snake high score: ${high}` : 'no snake high score yet. try: snake'] }
@@ -337,6 +339,32 @@ function man(args, ctx) {
   return {
     out: ['NAME', `    ${name} - ${command.desc}`, '', 'SYNOPSIS', `    ${command.usage ?? name}`],
   }
+}
+
+// --- corruption switch ---
+// The page effects (fx.js) read `fx` from the progress store. `fx: true` in the result tells shell.js
+// to nudge the page so the change shows immediately.
+
+function fsck(args, ctx) {
+  if (!ctx.store) return { out: ['fsck: /dev/egt0: no filesystem to check'] }
+  if (ctx.store.get().fx === 'off') return { out: ['fsck from util-linux 2.39', '/dev/egt0: clean, 0 errors'] }
+  ctx.store.update(state => ({ ...state, fx: 'off' }))
+  return {
+    out: [
+      'fsck from util-linux 2.39',
+      '/dev/egt0: 23 corrupted inodes found',
+      'repairing........ done',
+      'site restored. run `corrupt` to undo.',
+    ],
+    fx: true,
+  }
+}
+
+function corrupt(args, ctx) {
+  if (!ctx.store) return { out: ['corrupt: nothing to corrupt'] }
+  if (ctx.store.get().fx !== 'off') return { out: ['corrupt: already compromised.'] }
+  ctx.store.update(state => ({ ...state, fx: 'on' }))
+  return { out: ['injecting payload... done', 'the system remembers what you found.'], fx: true }
 }
 
 // --- site and fun ---

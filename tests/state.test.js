@@ -24,11 +24,11 @@ function throwingStorage() {
 }
 
 test('state: emptyState has no progress', () => {
-  assertDeepEqual(emptyState(), { found: [], texts: {}, snakeHigh: 0 })
+  assertDeepEqual(emptyState(), { found: [], texts: {}, snakeHigh: 0, fx: 'on' })
 })
 
 test('state: parseState round-trips serializeState', () => {
-  const state = { found: ['console', 'konami'], texts: { konami: 'abc_' }, snakeHigh: 12 }
+  const state = { found: ['console', 'konami'], texts: { konami: 'abc_' }, snakeHigh: 12, fx: 'off' }
   assertDeepEqual(parseState(serializeState(state)), state)
 })
 
@@ -50,7 +50,7 @@ test('state: parseState resets JSON that is not an object', () => {
 
 test('state: parseState sanitizes wrong field types', () => {
   const raw = JSON.stringify({ found: ['console', 7, 'console', null, 'cursor'], texts: { cursor: 'x', konami: 5 }, snakeHigh: -3 })
-  assertDeepEqual(parseState(raw), { found: ['console', 'cursor'], texts: { cursor: 'x' }, snakeHigh: 0 })
+  assertDeepEqual(parseState(raw), { found: ['console', 'cursor'], texts: { cursor: 'x' }, snakeHigh: 0, fx: 'on' })
 })
 
 test('state: parseState resets texts that are not an object', () => {
@@ -63,20 +63,27 @@ test('state: parseState drops a legacy unlocked flag', () => {
   assertDeepEqual(parseState(JSON.stringify({ found: [], unlocked: true, snakeHigh: 0 })), emptyState())
 })
 
+test('state: parseState keeps fx off only when stored exactly as off', () => {
+  assertEqual(parseState(JSON.stringify({ fx: 'off' })).fx, 'off')
+  assertEqual(parseState(JSON.stringify({ fx: 'OFF' })).fx, 'on')
+  assertEqual(parseState(JSON.stringify({ fx: false })).fx, 'on')
+  assertEqual(parseState(JSON.stringify({})).fx, 'on')
+})
+
 test('state: parseState rejects a fractional high score', () => {
   assertEqual(parseState(JSON.stringify({ snakeHigh: 4.5 })).snakeHigh, 0)
 })
 
 test('state: createStore loads what storage holds', () => {
-  const stored = serializeState({ found: ['konami'], texts: {}, snakeHigh: 3 })
+  const stored = serializeState({ found: ['konami'], texts: {}, snakeHigh: 3, fx: 'on' })
   const store = createStore(memoryStorage({ [STORAGE_KEY]: stored }))
-  assertDeepEqual(store.get(), { found: ['konami'], texts: {}, snakeHigh: 3 })
+  assertDeepEqual(store.get(), { found: ['konami'], texts: {}, snakeHigh: 3, fx: 'on' })
 })
 
 test('state: createStore update persists to storage', () => {
   const storage = memoryStorage()
   createStore(storage).update(state => ({ ...state, snakeHigh: 4 }))
-  assertDeepEqual(parseState(storage.data[STORAGE_KEY]), { found: [], texts: {}, snakeHigh: 4 })
+  assertDeepEqual(parseState(storage.data[STORAGE_KEY]), { found: [], texts: {}, snakeHigh: 4, fx: 'on' })
 })
 
 test('state: createStore with null storage works in memory', () => {
@@ -100,5 +107,5 @@ test("state: two stores on one storage see each other's writes", () => {
   const shell = createStore(storage)
   eggs.update(state => ({ ...state, found: ['comment'] }))
   shell.update(state => ({ ...state, snakeHigh: 7 }))
-  assertDeepEqual(eggs.get(), { found: ['comment'], texts: {}, snakeHigh: 7 })
+  assertDeepEqual(eggs.get(), { found: ['comment'], texts: {}, snakeHigh: 7, fx: 'on' })
 })

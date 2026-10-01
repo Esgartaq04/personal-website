@@ -129,6 +129,26 @@ The progress counter `[3/5]` appears in the brand line **only after the first fr
 
 Fragment 1 is free deliberately. It teaches the mechanic and guarantees that anyone who opens devtools learns a hunt exists, giving the remaining four a reason to be hunted.
 
+## Corruption
+
+Added 2026-10-01. The site visibly degrades as fragments are recovered, so progress is felt everywhere, not just in the `[n/5]` badge. Stage = fragments found (0–5), or `root` once `/api/session` confirms the unlock cookie; `fx: 'off'` in progress state (set by `fsck` in the shell) forces stage 0.
+
+| Stage | Adds |
+|---|---|
+| 0 | Nothing at all: visitors who never start the hunt see the original site and make no extra requests |
+| 1 | Background code rain (canvas behind the content), occasional brand flicker |
+| 2 | Transition glitch: RGB split and tearing on `#hack-overlay`, `ACCESS GRANTED` lands corrupted then snaps right |
+| 3 | Denser rain, heavier scanlines, bursts every 20–45 s: panel chromatic split, a heading decodes |
+| 4 | Nav labels and the home typewriter glitch briefly; toasts add `[!] integrity check failed` |
+| 5 | Red rain columns, kernel-panic line during transitions, a blinking `> /root awaits_` link |
+| root | Calm reward state: slower rain, no red or bursts, `(root@egt)-[~]#` brand, `ROOT ACCESS` overlay |
+
+**Mechanics.** `hunt/corruption.js` is pure (stage table, `stageFor`, cumulative `classesFor`, `corruptText`, `scrambleFrames`, `glitchLabel`). `fx.js` applies it: classes on `<html>`, a fixed `#fx-rain` canvas and `#fx-breach` link on `<body>`, a jittered burst timer that re-queries the current `<main>` each time, and a `MutationObserver` on `#access-msg` that swaps its text when `script.js` shows it (`script.js` only toggles its `display`). Nothing binds inside `<main>`, so the SPA swap rule holds and `script.js` is unchanged. Every text glitch restores the exact original string; `decode` only touches elements whose children are all text nodes, so markup is never lost.
+
+**Rain.** `hunt/rain.js` (moved out of `shell/matrix.js`, which still re-exports it) is shared by the background canvas and the `matrix` command; it must be public because `shell/` is gated. ~10–18 fps via `requestAnimationFrame`, paused while the tab is hidden, pre-warmed so streaks are on screen at load. Measured at stage 5 on 1920×1080: no long tasks, 60 fps.
+
+**Restraint.** Canvas opacity ≤ 0.25 with streaks fading along their length; bursts last under 0.5 s and are at least 20 s apart; `prefers-reduced-motion` gets one still rain frame and no bursts, tearing or blinking. Touch-only devices never start the hunt, so never see any of it.
+
 ## The shell
 
 ### Locked state
@@ -239,3 +259,4 @@ Revised 2026-10-01:
 
 9. **The answer moved server-side.** The passphrase, the unlock flag, and the shell's code were all readable or forgeable from the browser, and this file (served publicly) listed every answer. Added the Server half above, rotated every fragment, and added `.vercelignore` so `docs/`, `tests/`, `tests.html`, and `README.md` are not deployed. The pre-rotation answers in git history no longer work.
 10. **More shell commands.** Added `shell/commands.js` and `shell/matrix.js`; see Commands.
+11. **Corruption.** The site degrades with progress; see Corruption. `fsck` / `corrupt` in the shell switch it off and on.

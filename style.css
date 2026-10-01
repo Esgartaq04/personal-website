@@ -499,3 +499,171 @@ textarea:focus {
     min-width: 100%;
   }
 }
+/* Corruption (fx.js, rules in hunt/corruption.js). <html> gains cumulative classes as the hunt
+   progresses: .fx-3 means "stage 3 or later". Stage 0 has no classes, so none of this applies. */
+#fx-rain {
+  position: fixed;
+  inset: 0;
+  z-index: 1; /* Behind .terminal-container (z-index 10), above the page background. */
+  pointer-events: none;
+  transition: opacity 1.5s;
+}
+
+/* Brief bursts */
+.fx-flicker {
+  animation: fx-flicker 0.4s steps(4) 1;
+}
+@keyframes fx-flicker {
+  25% {
+    opacity: 0.25;
+    text-shadow: 2px 0 var(--term-alert);
+  }
+  50% {
+    opacity: 1;
+  }
+  75% {
+    opacity: 0.6;
+    transform: translateX(-2px);
+  }
+}
+.fx-split {
+  animation: fx-split 0.2s steps(3) 1;
+}
+@keyframes fx-split {
+  0% {
+    transform: translate(3px, 0);
+    text-shadow: -2px 0 rgba(255, 51, 51, 0.7), 2px 0 rgba(0, 255, 255, 0.5);
+  }
+  50% {
+    transform: translate(-3px, 1px);
+    text-shadow: 2px 0 rgba(255, 51, 51, 0.7), -2px 0 rgba(0, 255, 255, 0.5);
+  }
+  100% {
+    transform: none;
+    text-shadow: none;
+  }
+}
+
+/* Stage 2+: the page transition glitches. script.js (via GSAP) sets pointer-events: all inline only
+   while the overlay is up, so the animations run during a transition and never on the idle overlay. */
+.fx-2 #hack-overlay[style*="pointer-events: all"] .hack-text,
+.fx-2 .access-granted {
+  animation: fx-rgb 0.24s steps(2) infinite;
+}
+@keyframes fx-rgb {
+  0% {
+    text-shadow: 2px 0 rgba(255, 51, 51, 0.8), -2px 0 rgba(0, 255, 255, 0.6);
+  }
+  100% {
+    text-shadow: -3px 0 rgba(255, 51, 51, 0.8), 3px 0 rgba(0, 255, 255, 0.6);
+  }
+}
+.fx-2 #hack-overlay[style*="pointer-events: all"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0 37px,
+    rgba(0, 255, 65, 0.14) 37px 41px,
+    transparent 41px 93px
+  );
+  animation: fx-tear 0.6s steps(6) infinite;
+}
+@keyframes fx-tear {
+  0% {
+    transform: translateX(0);
+    clip-path: inset(8% 0 72% 0);
+  }
+  20% {
+    transform: translateX(-14px);
+    clip-path: inset(41% 0 36% 0);
+  }
+  40% {
+    transform: translateX(9px);
+    clip-path: inset(66% 0 12% 0);
+  }
+  60% {
+    transform: translateX(-5px);
+    clip-path: inset(22% 0 61% 0);
+  }
+  80% {
+    transform: translateX(16px);
+    clip-path: inset(83% 0 3% 0);
+  }
+  100% {
+    transform: translateX(0);
+    clip-path: inset(50% 0 44% 0);
+  }
+}
+
+/* Stage 3+: heavier scanlines */
+.fx-3 body::before {
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.33) 50%),
+    linear-gradient(90deg, rgba(255, 0, 0, 0.08), rgba(0, 255, 0, 0.03), rgba(0, 0, 255, 0.08));
+  background-size: 100% 3px, 3px 100%;
+}
+
+/* Stage 4+: hunt toasts carry a warning line */
+.egg-toast-warn {
+  margin-top: 6px;
+  color: var(--term-alert);
+  font-size: 0.8rem;
+}
+
+/* Stage 5: breach */
+.fx-5 #hack-overlay[style*="pointer-events: all"]::before {
+  content: "kernel panic - not syncing: VFS: unable to mount /home/esteban";
+  position: absolute;
+  left: 5%;
+  bottom: 8%;
+  color: var(--term-alert);
+  font-size: 12px;
+  opacity: 0.85;
+  animation: blink 1s steps(1) infinite;
+}
+.fx-5 .access-granted {
+  text-shadow: 0 0 12px var(--term-alert);
+}
+#fx-breach {
+  position: fixed;
+  left: 20px;
+  bottom: 14px;
+  z-index: 50;
+  color: var(--term-alert);
+  font-size: 0.8rem;
+  text-decoration: none;
+  opacity: 0.85;
+  animation: blink 1.4s steps(1) infinite;
+}
+#fx-breach:hover,
+#fx-breach:focus-visible {
+  opacity: 1;
+  animation: none;
+  text-decoration: underline;
+}
+
+/* Rooted: the visitor owns the box. Calm, steady, a little brighter. */
+.fx-root .brand {
+  text-shadow: 0 0 6px var(--term-dim);
+}
+.fx-root .access-granted {
+  letter-spacing: 4px;
+  text-shadow: 0 0 12px var(--term-green);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fx #hack-overlay .hack-text,
+  .fx .access-granted,
+  .fx #hack-overlay::before,
+  .fx #hack-overlay::after,
+  .fx-flicker,
+  .fx-split,
+  #fx-breach {
+    animation: none !important;
+  }
+  .fx #hack-overlay::after {
+    display: none;
+  }
+}

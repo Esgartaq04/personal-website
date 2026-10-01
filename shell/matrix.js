@@ -1,35 +1,14 @@
-// Falling-code screensaver for /root. Pure rain state plus a driver that runs it through the shell's
-// takeover host, the same way Snake does. Ticks run on setInterval, not requestAnimationFrame.
+// Falling-code screensaver for /root. The rain model is in hunt/rain.js; this renders it as text and
+// drives it through the shell's takeover host, the same way Snake does.
+// Ticks run on setInterval, not requestAnimationFrame.
+
+import { GLYPHS, TRAIL, createRain, glyphAt, stepRain } from '../hunt/rain.js'
+
+export { GLYPHS, TRAIL, createRain, glyphAt, stepRain }
 
 export const WIDTH = 60
 export const HEIGHT = 16
-export const TRAIL = 6
 export const TICK_MS = 80
-export const GLYPHS = '0123456789abcdef$#*+=<>|/\\{}[]:;'
-
-// Each column has a drop head (row index, negative = still above the screen) and its own speed.
-export function createRain(width, height, rng) {
-  const drops = Array.from({ length: width }, () => ({
-    y: 0 - Math.floor(rng() * height * 2), // 0 - x, not -x, so a drop at the top is 0 rather than -0.
-    speed: 1 + Math.floor(rng() * 2),
-  }))
-  return { width, height, drops, tick: 0 }
-}
-
-export function stepRain(rain, rng) {
-  const drops = rain.drops.map(drop => {
-    const y = drop.y + drop.speed
-    if (y - TRAIL > rain.height) return { y: 0 - Math.floor(rng() * rain.height), speed: 1 + Math.floor(rng() * 2) }
-    return { ...drop, y }
-  })
-  return { ...rain, drops, tick: rain.tick + 1 }
-}
-
-// Glyphs come from position and tick rather than rng, so a frame is a pure function of the state.
-export function glyphAt(x, y, tick) {
-  const n = Math.abs((x * 7919 + y * 104729 + tick * 31) % GLYPHS.length)
-  return GLYPHS[n]
-}
 
 export function renderRain(rain) {
   const rows = []

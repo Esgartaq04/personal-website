@@ -19,6 +19,7 @@ import {
   statusLines,
   toastText,
 } from './hunt/trail.js'
+import { fetchRooted, initFx, refreshFx, toastWarning } from './fx.js'
 
 const STYLE = 'color:#00ff41;font-family:monospace'
 const store = createStore(safeStorage())
@@ -33,6 +34,7 @@ function start() {
   console.log(`%c${bannerText()}`, STYLE)
   window.hunt = hunt
   renderIndicator()
+  startFx()
 
   let keyBuffer = []
   document.addEventListener('keydown', event => {
@@ -49,6 +51,13 @@ function start() {
     cursorClicks = result.times
     if (result.triggered) claim('cursor')
   })
+}
+
+// The corruption effects scale with progress. Only players (one fragment or more) ask the server whether
+// /root is unlocked, so a visitor who never starts the hunt makes no extra request and sees no effects.
+async function startFx() {
+  const rooted = countFound(store.get()) > 0 ? await fetchRooted() : false
+  initFx(store, { rooted })
 }
 
 // Secret fragments have no text in the page's code; the server hands it over once the trigger fires.
@@ -68,6 +77,7 @@ async function claim(id) {
   const result = markFound(store.get(), id, text)
   if (!result.isNew) return false
   const state = store.update(() => result.state)
+  refreshFx()
   showToast(toastText({ ...fragment, text }, countFound(state)))
   renderIndicator()
   return true
@@ -140,6 +150,12 @@ function showToast(message) {
     document.body.appendChild(toast)
   }
   toast.textContent = message
+  if (toastWarning()) {
+    const warning = document.createElement('div')
+    warning.className = 'egg-toast-warn'
+    warning.textContent = '[!] integrity check failed'
+    toast.appendChild(warning)
+  }
   toast.classList.remove('show')
   void toast.offsetWidth // Force a reflow so back-to-back finds replay the glitch animation.
   toast.classList.add('show')

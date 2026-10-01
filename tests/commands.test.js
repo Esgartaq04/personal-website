@@ -280,6 +280,27 @@ test('commands: hiscore reads the snake score from the store', () => {
   assertDeepEqual(run(shell({ store }), 'hiscore'), ['snake high score: 5'])
 })
 
+test('commands: fsck turns the corruption off, corrupt turns it back on', () => {
+  const store = createStore(null)
+  const ctx = shell({ store })
+  const repaired = execute(ctx, 'fsck')
+  assertEqual(store.get().fx, 'off')
+  assertEqual(repaired.fx, true)
+  assert(repaired.out.some(line => line.includes('site restored')))
+  const again = execute(ctx, 'fsck')
+  assertEqual(again.fx, undefined)
+  assert(again.out.some(line => line.includes('clean')))
+  const restored = execute(ctx, 'corrupt')
+  assertEqual(store.get().fx, 'on')
+  assertEqual(restored.fx, true)
+  assertDeepEqual(run(ctx, 'corrupt'), ['corrupt: already compromised.'])
+})
+
+test('commands: fsck and corrupt cope without a store', () => {
+  assertEqual(execute(shell(), 'fsck').fx, undefined)
+  assertEqual(execute(shell(), 'corrupt').fx, undefined)
+})
+
 test('commands: hidden jokes answer but stay out of help', () => {
   const ctx = shell()
   assert(run(ctx, 'vim')[0].startsWith('vim:'))

@@ -2,6 +2,7 @@
 // /api/unlock, which answers with a signed HttpOnly cookie, and middleware.js only serves shell.js and
 // shell/ to requests carrying that cookie. Nothing in localStorage can open the shell.
 
+import { fetchRooted, setRooted } from './fx.js'
 import { isTouchOnly, unlockAttempt } from './hunt/trail.js'
 import { input, inputLine, print, setPrompt, term } from './term.js'
 
@@ -22,22 +23,13 @@ async function boot() {
   term.addEventListener('click', () => input.focus())
   input.addEventListener('keydown', onKey)
   input.focus()
-  if (await sessionUnlocked()) {
+  if (await fetchRooted()) {
     openShell(['session restored. type `help` to look around.', ''])
     return
   }
   print(['egt.agency secure terminal', 'authorization required.', ''])
   setPrompt(PROMPT)
   mode = 'locked'
-}
-
-async function sessionUnlocked() {
-  try {
-    const response = await fetch('/api/session', { cache: 'no-store' })
-    return response.ok && (await response.json()).unlocked === true
-  } catch {
-    return false
-  }
 }
 
 function onKey(event) {
@@ -89,6 +81,7 @@ async function submit(value) {
 
 async function openShell(lines) {
   mode = 'open'
+  setRooted(true) // The site settles into its "rooted" look; a no-op where eggs.js did not start fx.
   input.removeEventListener('keydown', onKey)
   try {
     const { start } = await import('./shell.js')

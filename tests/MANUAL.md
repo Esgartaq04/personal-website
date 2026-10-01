@@ -28,6 +28,21 @@ Reset between runs: `localStorage.removeItem('egt.eggs')` in the console, delete
 - [ ] In mobile/touch emulation, or on a phone, reload: no banner, `typeof hunt` is `"undefined"`, and three taps on the cursor log nothing. If devtools emulation does not flip `(pointer: coarse)`, confirm on a real phone.
 - [ ] With site data blocked for the origin, every page still loads and `hunt()` still works for the session.
 
+## Corruption
+
+Seed progress quickly from the console: `localStorage.setItem('egt.eggs', JSON.stringify({ found: ['console','cursor','comment','konami','robots'].slice(0, N), texts: {}, snakeHigh: 0, fx: 'on' }))`, then reload.
+
+- [ ] Stage 0 (nothing found): `<html>` has no `fx` classes, there is no `#fx-rain` canvas, and the Network tab shows no `/api/session` request.
+- [ ] Stage 1: faint code rain behind the content; text stays readable.
+- [ ] Stage 2: clicking a nav link shows RGB-split matrix text and tearing bars; `ACCESS GRANTED` sometimes appears corrupted, then corrects. The page still swaps.
+- [ ] Stage 3+: `import('/fx.js').then(fx => fx.runBurst('decode'))` scrambles a heading and restores it exactly; `'split'` jolts the panel.
+- [ ] Stage 4+: `runBurst('nav')` mis-renders one nav label for a moment; on home, `runBurst('typo')` garbles the typewriter line then fixes it. A new find's toast has a red `[!] integrity check failed` line.
+- [ ] Stage 5: some rain columns are red, transitions show the kernel panic line, and `> /root awaits_` sits bottom-left and links to `/root`.
+- [ ] Finding a fragment live raises the stage immediately, without a reload.
+- [ ] After unlocking `/root`, other pages show `(root@egt)-[~]#`, slower green-only rain, no breach link, and `ROOT ACCESS` during transitions.
+- [ ] `fsck` in the shell removes every effect at once; it stays off across pages and reloads. `corrupt` brings it back.
+- [ ] With reduced motion on (OS setting or devtools rendering emulation): the rain is a still frame, and no bursts, tearing or blinking happen.
+
 ## Shell
 
 Locally the page is `/root.html`; the `/root` rewrite only exists on Vercel.
