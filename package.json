@@ -1,0 +1,13 @@
+{
+  "name": "personal-website",
+  "private": true,
+  "type": "module",
+  "description": "Static site; api/ and middleware.js are the only server code. There is deliberately no build script.",
+  "scripts": {
+    "test": "node tests/run.mjs",
+    "serve": "node scripts/serve.mjs"
+  },
+  "dependencies": {
+    "@vercel/functions": "^3.1.0"
+  }
+}

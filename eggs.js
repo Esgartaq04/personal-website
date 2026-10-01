@@ -8,6 +8,7 @@ import {
   countFound,
   fragmentById,
   fragmentByText,
+  fragmentText,
   isTouchOnly,
   markFound,
   nextHint,
@@ -21,6 +22,7 @@ import {
 
 const STYLE = 'color:#00ff41;font-family:monospace'
 const store = createStore(safeStorage())
+const pending = new Set()
 let toastTimer = null
 
 if (!isTouchOnly(window.matchMedia ? query => window.matchMedia(query) : undefined)) {
@@ -49,24 +51,58 @@ function start() {
   })
 }
 
-function claim(id) {
-  if (!markFound(store.get(), id).isNew) return false
-  const state = store.update(current => markFound(current, id).state)
-  showToast(toastText(fragmentById(id), countFound(state)))
+// Secret fragments have no text in the page's code; the server hands it over once the trigger fires.
+async function claim(id) {
+  if (pending.has(id) || !markFound(store.get(), id).isNew) return false
+  const fragment = fragmentById(id)
+  let text = fragmentText(fragment)
+  if (text === null) {
+    pending.add(id)
+    text = await fetchFragment(id)
+    pending.delete(id)
+    if (text === null) {
+      console.log('%c> signal lost. that fragment did not come through. try again.', STYLE)
+      return false
+    }
+  }
+  const result = markFound(store.get(), id, text)
+  if (!result.isNew) return false
+  const state = store.update(() => result.state)
+  showToast(toastText({ ...fragment, text }, countFound(state)))
   renderIndicator()
   return true
 }
 
+async function fetchFragment(id) {
+  try {
+    const response = await fetch('/api/fragment', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ id }),
+    })
+    if (!response.ok) return null
+    const body = await response.json()
+    return typeof body.text === 'string' ? body.text : null
+  } catch {
+    return null
+  }
+}
+
 // Calling hunt() at all proves the console was found, so every call claims fragment 1 first.
+// Returns nothing, so the console prints the report rather than a pending promise.
 function hunt(text) {
-  claim('console')
+  runHunt(text)
+}
+
+async function runHunt(text) {
+  await claim('console')
   if (text !== undefined) {
-    const fragment = fragmentByText(text)
+    const fragment = fragmentByText(text, store.get().texts)
     if (!fragment) {
       console.log('%c> unknown fragment. keep digging.', STYLE)
       return
     }
-    claim(fragment.id)
+    await claim(fragment.id)
   }
   const state = store.get()
   const hint = nextHint(state)

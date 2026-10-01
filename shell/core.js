@@ -1,7 +1,8 @@
 // Shell engine: tokenizing, the command registry, built-in commands, and tab completion.
 // No DOM. shell.js renders whatever these return.
 //
-// A command is { desc, hidden?, run(args, ctx) } and returns { out, clear?, exit?, takeover? }.
+// A command is { desc, usage?, hidden?, run(args, ctx) } and returns
+// { out, clear?, exit?, takeover?, navigate?, download? }. navigate and download are URLs shell.js acts on.
 // A takeover is handed a host { draw(text), onKey(handler), finish(lines) } and owns the screen
 // until it calls finish. That is the whole interface a game needs.
 
@@ -34,8 +35,9 @@ export function tokenize(line) {
   return tokens
 }
 
-export function createContext({ tree, home = HOME, store = null }) {
-  return { tree, home, cwd: home, history: [], registry: new Map(), store }
+// now and rng are injectable so clock- and dice-driven commands stay testable.
+export function createContext({ tree, home = HOME, store = null, now = () => Date.now(), rng = Math.random }) {
+  return { tree, home, cwd: home, history: [], registry: new Map(), store, now, rng, bootedAt: now() }
 }
 
 export function register(ctx, name, command) {
@@ -51,32 +53,46 @@ export function helpLines(ctx) {
 }
 
 export function execute(ctx, line) {
-  const trimmed = line.trim()
+  let trimmed = line.trim()
   if (!trimmed) return { out: [] }
+  // Like bash, !! expands to the previous command and the expanded line is echoed before it runs.
+  let echo = []
+  if (trimmed.includes('!!')) {
+    const previous = ctx.history[ctx.history.length - 1]
+    if (previous === undefined) return { out: ['bash: !!: event not found'] }
+    trimmed = trimmed.replaceAll('!!', previous)
+    echo = [trimmed]
+  }
   ctx.history.push(trimmed)
   const [name = '', ...args] = tokenize(trimmed)
   const command = ctx.registry.get(name)
-  if (!command) return { out: [`bash: ${name}: command not found`] }
+  if (!command) return { out: [...echo, `bash: ${name}: command not found`] }
   try {
-    return command.run(args, ctx)
+    const result = command.run(args, ctx)
+    return echo.length ? { ...result, out: [...echo, ...result.out] } : result
   } catch (error) {
-    return { out: [`bash: ${name}: ${error.message}`] }
+    return { out: [...echo, `bash: ${name}: ${error.message}`] }
   }
 }
 
 export function registerBuiltins(ctx) {
-  register(ctx, 'help', { desc: 'list available commands', run: (args, c) => ({ out: helpLines(c) }) })
-  register(ctx, 'ls', { desc: 'list directory contents (-a shows hidden files)', run: ls })
-  register(ctx, 'cd', { desc: 'change directory', run: cd })
-  register(ctx, 'pwd', { desc: 'print working directory', run: (args, c) => ({ out: [c.cwd] }) })
-  register(ctx, 'cat', { desc: 'print file contents', run: cat })
-  register(ctx, 'whoami', { desc: 'print current user', run: () => ({ out: ['visitor'] }) })
-  register(ctx, 'clear', { desc: 'clear the screen', run: () => ({ out: [], clear: true }) })
+  register(ctx, 'help', { desc: 'list available commands', usage: 'help', run: (args, c) => ({ out: helpLines(c) }) })
+  register(ctx, 'ls', {
+    desc: 'list directory contents (-a hidden, -l long)',
+    usage: 'ls [-a] [-l] [path...]',
+    run: ls,
+  })
+  register(ctx, 'cd', { desc: 'change directory', usage: 'cd [path]   (no path goes home)', run: cd })
+  register(ctx, 'pwd', { desc: 'print working directory', usage: 'pwd', run: (args, c) => ({ out: [c.cwd] }) })
+  register(ctx, 'cat', { desc: 'print file contents', usage: 'cat file...', run: cat })
+  register(ctx, 'whoami', { desc: 'print current user', usage: 'whoami', run: () => ({ out: ['visitor'] }) })
+  register(ctx, 'clear', { desc: 'clear the screen', usage: 'clear', run: () => ({ out: [], clear: true }) })
   register(ctx, 'history', {
     desc: 'show command history',
+    usage: 'history   (!! repeats the last command)',
     run: (args, c) => ({ out: c.history.map((entry, i) => `${String(i + 1).padStart(4)}  ${entry}`) }),
   })
-  register(ctx, 'exit', { desc: 'log out', run: () => ({ out: ['logout'], exit: true }) })
+  register(ctx, 'exit', { desc: 'log out', usage: 'exit', run: () => ({ out: ['logout'], exit: true }) })
   register(ctx, 'sudo', {
     desc: '',
     hidden: true,
@@ -86,22 +102,40 @@ export function registerBuiltins(ctx) {
 }
 
 function ls(args, ctx) {
-  const all = args.includes('-a')
+  const flags = args.filter(arg => arg.startsWith('-')).join('')
+  const all = flags.includes('a')
+  const long = flags.includes('l')
   const targets = args.filter(arg => !arg.startsWith('-'))
   if (targets.length === 0) targets.push('.')
   const out = []
   for (const target of targets) {
-    const result = listDir(ctx.tree, resolvePath(ctx.cwd, target, ctx.home), { all })
+    const path = resolvePath(ctx.cwd, target, ctx.home)
+    const result = listDir(ctx.tree, path, { all })
     if (result.ok) {
       if (targets.length > 1) out.push(`${target}:`)
-      if (result.names.length > 0) out.push(result.names.join('  '))
+      if (long) {
+        out.push(`total ${result.names.length}`)
+        for (const name of result.names) {
+          const bare = name.replace(/\/$/, '')
+          out.push(longEntry(getNode(ctx.tree, `${path === '/' ? '' : path}/${bare}`), name))
+        }
+      } else if (result.names.length > 0) {
+        out.push(result.names.join('  '))
+      }
     } else if (result.error === 'ENOTDIR') {
-      out.push(target)
+      out.push(long ? longEntry(getNode(ctx.tree, path), target) : target)
     } else {
       out.push(`ls: cannot access '${target}': No such file or directory`)
     }
   }
   return { out }
+}
+
+// The filesystem is read-only and frozen in time, so every entry gets the same owner and date.
+export function longEntry(node, name) {
+  const isDir = node.type === 'dir'
+  const size = isDir ? 4096 : node.content.length
+  return `${isDir ? 'dr-xr-xr-x' : '-r--r--r--'} 1 visitor visitor ${String(size).padStart(5)} Oct  1  2026 ${name}`
 }
 
 function cd(args, ctx) {

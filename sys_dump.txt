@@ -1,6 +1,6 @@
 [    0.000000] kernel: panic recovery mode engaged
 [    0.000113] kernel: dumping recovered memory
-[    0.000187] kernel: recovered fragment :: 0x00
-[    0.000201] kernel: log it from the console on any page: hunt("0x00")
+[    0.000187] kernel: recovered fragment :: 0xd4
+[    0.000201] kernel: log it from the console on any page: hunt("0xd4")
 [    0.000240] kernel: fragments assemble in trail order. the result opens /root.
 [    0.000305] kernel: end of dump

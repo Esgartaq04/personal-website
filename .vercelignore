@@ -1,0 +1,7 @@
+# Never deployed. docs/ and tests/ describe how the hunt works; README.md and scripts/ are for developers.
+docs/
+tests/
+tests.html
+scripts/
+README.md
+.env*

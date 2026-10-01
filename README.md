@@ -2,7 +2,7 @@
 
 Terminal-themed personal portfolio for Esteban Garcia Taquez. Live at [egt.agency](https://egt.agency).
 
-Vanilla HTML, CSS, and JavaScript — no build step, no framework, no package manager. Open a file, edit it, reload.
+Vanilla HTML, CSS, and JavaScript — no build step and no framework. Open a file, edit it, reload. The only server code is a few Vercel Functions and a Routing Middleware that keep the easter egg hunt honest.
 
 ## Stack
 
@@ -11,7 +11,8 @@ Vanilla HTML, CSS, and JavaScript — no build step, no framework, no package ma
 | [GSAP](https://gsap.com/) (CDN) | Page-transition animations |
 | [EmailJS](https://www.emailjs.com/) (CDN) | Contact form delivery, client-side |
 | Google Fonts — Fira Code | Monospace type |
-| Vercel | Hosting and Speed Insights |
+| Vercel | Hosting, Speed Insights, Functions (`api/`), Routing Middleware |
+| [`@vercel/functions`](https://www.npmjs.com/package/@vercel/functions) | `next()` for the middleware; the only npm dependency |
 
 ## Layout
 
@@ -27,32 +28,59 @@ config.ex.js                  — EmailJS config template
 config.js                     — EmailJS config, actually loaded
 assets/                       — favicon, resume PDF, success GIF
 eggs.js                       — easter egg hunt, loaded on every page
-hunt/                         — hunt rules and progress state
+hunt/                         — hunt rules and progress state (public fragment text only)
 root.html         /root       — hidden shell; not in the nav
-shell.js                      — renders the shell for root.html
-shell/                        — filesystem, commands, Snake
+lock.js, term.js              — /root lock screen and terminal DOM (public)
+shell.js, shell/              — the shell: filesystem, commands, Snake, matrix (served only after unlock)
+api/                          — Vercel Functions: /api/fragment, /api/unlock, /api/session
+lib/                          — server logic for those functions and the middleware
+middleware.js                 — 404s shell.js and shell/ without a valid unlock cookie
 robots.txt, sys_dump.txt      — part of the hunt
 vercel.json                   — rewrites /root to root.html
+.vercelignore                 — keeps docs/, tests/, scripts/, README.md off the live site
+scripts/serve.mjs             — local server that mimics Vercel (static + api + middleware)
 tests.html, tests/            — unit tests and the manual checklist
 ```
 
 ## Running locally
 
-Any static file server works. The contact form and the resume download both need real HTTP, so opening `index.html` via `file://` will not fully work.
+For the pages alone, any static file server works. The contact form and the resume download both need real HTTP, so opening `index.html` via `file://` will not fully work.
 
 ```bash
 python -m http.server 8765
 ```
 
-Then visit <http://localhost:8765>.
+The easter egg hunt also needs `/api` and the middleware, plus `HUNT_FRAGMENTS` and `HUNT_SECRET` in a gitignored `.env.local`. The production values are stored in Vercel as **sensitive**, so they cannot be read back or pulled; use test values locally (below). Then either use the Vercel CLI:
+
+```bash
+npm i -g vercel
+vercel link          # once, pick the personal-website project
+vercel dev
+```
+
+or the bundled zero-dependency server, which runs the same handlers and gate and reads `.env.local`:
+
+```bash
+npm install          # @vercel/functions, which middleware.js imports
+npm run serve        # http://localhost:8765
+```
+
+Test values for `.env.local`:
+
+```
+HUNT_FRAGMENTS={"console":"aa","cursor":"bb_","konami":"cc_"}
+HUNT_SECRET=any-local-string-of-at-least-32-characters
+```
+
+The passphrase is then the five fragments in trail order: `aa` + `bb_` + the `about.html` comment fragment + `cc_` + the `sys_dump.txt` fragment.
 
 ### Tests
 
 ```bash
-node tests/run.mjs
+node tests/run.mjs     # or: npm test
 ```
 
-Runs every unit test and exits non-zero on any failure. No install step: it needs only Node 22. The same tests run in a browser at <http://localhost:8765/tests.html>. The DOM layer has no automated tests; [tests/MANUAL.md](tests/MANUAL.md) is its checklist.
+Runs every unit test and exits non-zero on any failure. No install step: it needs only Node 22. The same tests, minus the Node-only server tests in `tests/server.js`, run in a browser at <http://localhost:8765/tests.html> (local only; `tests.html` is not deployed). The DOM layer has no automated tests; [tests/MANUAL.md](tests/MANUAL.md) is its checklist.
 
 ## EmailJS configuration
 
@@ -87,20 +115,49 @@ Adding a page therefore means: create the file with content inside `<main>`, and
 
 ## Easter eggs
 
-The site hides a scavenger hunt that ends in a playable shell at `/root`. The full design, including every answer, is in [docs/superpowers/specs/2026-08-27-easter-eggs-design.md](docs/superpowers/specs/2026-08-27-easter-eggs-design.md) — skip it if you would rather play.
+The site hides a scavenger hunt that ends in a playable shell at `/root`. The design is in [docs/superpowers/specs/2026-08-27-easter-eggs-design.md](docs/superpowers/specs/2026-08-27-easter-eggs-design.md). It does not contain the live answers.
 
 The hunt follows the navigation rules above without touching `script.js`: every listener in `eggs.js` binds once to `document`, which survives the `<main>` swap, so nothing is ever orphaned or bound twice.
+
+### How the hunt is protected
+
+Everything sent to a browser can be read, so the answer is not sent:
+
+| Piece | Where it lives |
+|---|---|
+| Three secret fragments | `HUNT_FRAGMENTS` env var. The browser gets each from `POST /api/fragment` when its trigger fires |
+| Two public fragments | `about.html` comment and `sys_dump.txt` (finding them in source is the puzzle) |
+| Passphrase check | `POST /api/unlock`, timing-safe compare, 500 ms delay on failure |
+| "Unlocked" | Signed `egt_root` cookie (HMAC with `HUNT_SECRET`), HttpOnly, Secure, SameSite=Strict, 30 days |
+| The shell's code | `middleware.js` returns 404 for `/shell.js` and `/shell/*` without a valid cookie |
+
+`localStorage` (`egt.eggs`) only holds progress for the badge and `hunt()` report. Editing it cannot open the shell.
+
+The limit, by design: the cursor, Konami, and console triggers run in the browser, so someone who reads `eggs.js` can call `/api/fragment` directly. That takes deliberate reverse-engineering, unlike reading a string out of the source.
+
+**Changing the answers:** edit `HUNT_FRAGMENTS` in Vercel (Production and Preview) and redeploy. Both variables are type *sensitive*: Vercel will not show the current value, so keep your own copy of the answers somewhere private. To rotate the public fragments, change the text in `about.html`, `sys_dump.txt`, and `hunt/trail.js` together. Rotating `HUNT_SECRET` logs everyone out of `/root`. Never commit the secret values: this repo is public.
+
+### Environment variables
+
+| Name | Value |
+|---|---|
+| `HUNT_FRAGMENTS` | JSON: `{"console":"...","cursor":"...","konami":"..."}` |
+| `HUNT_SECRET` | Random string, 32+ characters (`openssl rand -base64 48`) |
+
+If either is missing, `/api/*` answers 503, the lock screen says `connection refused`, and the shell stays locked.
 
 ## Deployment
 
 Pushes deploy through Vercel. Each page includes the Speed Insights script, which 404s locally — that is expected and harmless.
 
+The project's framework preset is **Other** with no build command, so Vercel serves the repository root as static files, deploys `api/*.js` as Node functions, and runs `middleware.js` on the paths in its `matcher`. `package.json` deliberately has no `build` script; adding one would change that.
+
 `vercel.json` holds a single rewrite so `/root` resolves. The rest of the site deliberately does not use clean URLs: `updateActiveNav()` in `script.js` compares the pathname against names like `about.html`.
 
 ## Open items
 
-- [ ] **Project links.** The four newest cards in `projects.html` (Algorithmic Trading Bot, Interview Prep Bot, WikiVerify, Content Creator Analytics Platform) render `[ link pending ]` instead of a repo link. Each has an HTML comment marking exactly where the anchor goes.
-- [ ] **Resume PDF.** `assets/Resume-current.pdf` was compiled before a LaTeX fix to the trading-bot bullet. The site's HTML uses the corrected figures; the downloadable PDF should be re-exported to match.
+- [ ] **Project links.** Every card in `projects.html` except Unbounded renders `[ link pending ]` instead of a repo or live link. Each has an HTML comment marking exactly where the anchor goes.
+- [ ] **Resume PDF.** The site's HTML now follows the master resume (Oct. 2026). `assets/Resume-current.pdf` is an older one-page cut and should be re-exported to match.
 - [ ] **Home page role line.** `index.html` reads `Role: Software Engineer // AI & Financial Systems`. This wording was drafted, not taken from the resume — confirm or replace it.
 - [ ] **`assets/Resume-previous.pdf`.** An untracked local backup of the superseded resume. Decide whether to keep it locally, commit it, or delete it.
 - [ ] **Social links.** `contact.html` has a commented-out Twitter link and a `add better link later on` note.
