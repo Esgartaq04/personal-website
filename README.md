@@ -8,7 +8,7 @@ Vanilla HTML, CSS, and JavaScript — no build step and no framework. Open a fil
 
 | Piece | Used for |
 |---|---|
-| [GSAP](https://gsap.com/) (CDN) | Page-transition animations |
+| [GSAP](https://gsap.com/) 3.15 (CDN) with ScrambleText and CustomEase | Page transitions |
 | [EmailJS](https://www.emailjs.com/) (CDN) | Contact form delivery, client-side |
 | Google Fonts — Fira Code | Monospace type |
 | Vercel | Hosting, Speed Insights, Functions (`api/`), Routing Middleware |
@@ -22,7 +22,9 @@ about.html        /about      — bio and capabilities
 experience.html   /experience — employment, leadership, education
 projects.html     /projects   — project cards
 contact.html      /contact    — resume download, contact form, socials
-script.js                     — navigation, typewriter, form handling
+script.js                     — EmailJS init, typewriter, form handling (module)
+nav.js                        — navigation: nav clicks, fetch, <main> swap, history, transitions
+nav/                          — transition rules: command text, status line, timings (pure, unit-tested)
 style.css                     — all styling; CSS variables at :root
 config.ex.js                  — EmailJS config template
 config.js                     — EmailJS config, actually loaded
@@ -101,7 +103,7 @@ These three values are client-side by nature — they ship to every visitor's br
 
 ## How navigation works
 
-Nav clicks do **not** cause a full page load. `script.js` intercepts any `a.nav-link` click, plays the "hacking" overlay, `fetch`es the target page, and swaps in only its `<main>` innerHTML, then updates `document.title` and pushes history state.
+Nav clicks do **not** cause a full page load. `nav.js` intercepts any `a.nav-link` click, `fetch`es the target page, and plays the change as a typed terminal command (`cd /about`) whose `GET` line shows the real response size and fetch time. It then swaps in only the fetched `<main>` innerHTML, updates `document.title`, and pushes history state. Reduced motion, a hidden tab, and a missing GSAP swap instantly instead. A failed fetch prints a red error line, then falls back to a full page load.
 
 Two rules follow from this, and breaking either fails quietly rather than loudly:
 
@@ -113,8 +115,7 @@ Adding a page therefore means: create the file with content inside `<main>`, and
 ### Other gotchas
 
 - `body` has `overflow: hidden`; `main` scrolls internally. Long pages scroll within the content pane, not the window.
-- The animated swap runs inside a GSAP `onComplete`, so it depends on `requestAnimationFrame`. In environments that do not composite frames (headless capture, a hidden tab), the transition never completes and content will not swap. This is not a bug in normal browser use.
-- `script.js` re-runs `initPageScripts()` after every swap and clones the contact form to drop stale listeners.
+- `nav.js` re-runs `script.js`'s `initPageScripts()` after every swap, which clones the contact form to drop stale listeners.
 
 ## Easter eggs
 
@@ -209,7 +210,7 @@ Pushes deploy through Vercel. Each page includes the Speed Insights script, whic
 
 The project's framework preset is **Other** with no build command, so Vercel serves the repository root as static files, deploys `api/*.js` as Node functions, and runs `middleware.js` on the paths in its `matcher`. `package.json` deliberately has no `build` script; adding one would change that.
 
-`vercel.json` holds a single rewrite so `/root` resolves. The rest of the site deliberately does not use clean URLs: `updateActiveNav()` in `script.js` compares the pathname against names like `about.html`.
+`vercel.json` holds a single rewrite so `/root` resolves. The rest of the site deliberately does not use clean URLs: `updateActiveNav()` in `nav.js` compares the pathname against names like `about.html`.
 
 ## Open items
 

@@ -1,6 +1,6 @@
 # Manual checklist
 
-The DOM layer has no automated tests. Walk this list before merging anything that touches `eggs.js`, `lock.js`, `shell.js`, `shell/`, `root.html`, `api/`, `lib/`, `middleware.js`, or the breadcrumbs.
+The DOM layer has no automated tests. Walk this list before merging anything that touches `nav.js`, `nav/`, `eggs.js`, `lock.js`, `shell.js`, `shell/`, `root.html`, `api/`, `lib/`, `middleware.js`, or the breadcrumbs.
 
 Serve with the API and middleware running: `vercel dev`, or `npm run serve` (see the README). `python -m http.server` serves the pages but not `/api`, so secret fragments and the unlock will not work there.
 
@@ -17,7 +17,7 @@ Reset between runs: `localStorage.removeItem('egt.eggs')` in the console, delete
 - [ ] In the site console, `hunt` prints `[1/5]`, the masked list with slot 1 filled, and a lead about the home page cursor. The brand line now shows `[1/5]`, and a toast reads `FRAGMENT 1/5 ACQUIRED :: "<console fragment>"`. The Network tab shows one `POST /api/fragment`.
 - [ ] Running `hunt` again prints progress without a second toast. Up arrow recalls earlier commands; Tab completes command names.
 - [ ] On the home page, clicking the blinking cursor three times quickly logs the cursor fragment with a toast. Three slow clicks, more than 1.5s apart, do nothing.
-- [ ] Navigate away from home and back using the nav, not a reload. The cursor trigger still works, and fires one toast rather than two. *Needs a real, visible browser tab: the page swap waits on `requestAnimationFrame`.*
+- [ ] Navigate away from home and back using the nav, not a reload. The cursor trigger still works, and fires one toast rather than two.
 - [ ] After that navigation, the brand line still shows the counter, and the site console still has its history.
 - [ ] View source on the about page: the comment above `IDENTITY CONFIRMED` shows `ash_` and `hunt ash_`. Running that in the site console logs fragment 3.
 - [ ] On any page with nothing focused, the Konami code (up up down down left right left right B A) logs the Konami fragment. Holding Shift for B and A still works.
@@ -47,6 +47,16 @@ Seed progress quickly from the console: `localStorage.setItem('egt.eggs', JSON.s
 - [ ] After unlocking `/root`, other pages show `(root@egt)-[~]#`, slower green-only rain, no breach link, and `ROOT ACCESS` during transitions.
 - [ ] `fsck` in the shell removes every effect at once; it stays off across pages and reloads. `corrupt` brings it back.
 - [ ] With reduced motion on (OS setting or devtools rendering emulation): the rain is a still frame, and no bursts, tearing or blinking happen.
+
+## Transitions
+
+- [ ] Click through all five pages. Each shows a typed `cd /<page>` and a `GET` line with real kB and ms (it varies between clicks), then the page wipes in. Takes about 1.2s locally.
+- [ ] Scroll the experience page to the bottom and click `/about`. The prompt shows at the bottom of the pane, the pane doesn't resize, and the reveal is quick.
+- [ ] Click `/about` then `/projects` within half a second. The first transition finishes instantly, then one `/projects` transition runs. There's one prompt and no leftover lines.
+- [ ] Devtools offline, then click a nav link. A red `cd: /<page>: connection reset` line appears, then a full page load is attempted.
+- [ ] Block `cdnjs.cloudflare.com` in devtools and reload. Nav clicks still swap pages instantly, with no console errors from `nav.js`.
+- [ ] Reduced motion (rendering emulation): nav clicks swap instantly, with no prompt.
+- [ ] Start a nav click, then switch tabs at once. Coming back, the new page is in place.
 
 ## Shell
 

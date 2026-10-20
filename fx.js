@@ -53,6 +53,11 @@ export function isRooted() {
   return rooted
 }
 
+// The stage in effect: 0 before initFx and under fsck, ROOT when rooted.
+export function currentStage() {
+  return stage
+}
+
 export function setRooted(value) {
   rooted = value
   if (store) refreshFx()

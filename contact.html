@@ -12,7 +12,9 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="style.css" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.15.0/gsap.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.15.0/ScrambleTextPlugin.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.15.0/CustomEase.min.js"></script>
     <script
       type="text/javascript"
       src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"
@@ -21,7 +23,7 @@
     <!-- LOAD CONFIG FIRST -->
     <script src="config.js"></script>
     <!-- THEN LOAD LOGIC -->
-    <script src="script.js" defer></script>
+    <script type="module" src="script.js"></script>
     <script type="module" src="eggs.js"></script>
     <script>
       window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
@@ -29,12 +31,6 @@
     <script defer src="/_vercel/speed-insights/script.js"></script>
   </head>
   <body>
-    <!-- Standard Hack Overlay (Global) -->
-    <div id="hack-overlay">
-      <div class="hack-text" id="matrix-text"></div>
-      <div class="access-granted" id="access-msg">ACCESS GRANTED</div>
-    </div>
-
     <div class="terminal-container">
       <header>
         <div class="brand">esteban_garcia_taquez@portfolio:~$</div>
