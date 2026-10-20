@@ -103,7 +103,7 @@ These three values are client-side by nature — they ship to every visitor's br
 
 ## How navigation works
 
-Nav clicks do **not** cause a full page load. `nav.js` intercepts any `a.nav-link` click, `fetch`es the target page, and plays the change as a typed terminal command (`cd /about`) whose `GET` line shows the real response size and fetch time. It then swaps in only the fetched `<main>` innerHTML, updates `document.title`, and pushes history state. Reduced motion, a hidden tab, and a missing GSAP swap instantly instead. A failed fetch prints a red error line, then falls back to a full page load.
+Nav clicks do **not** cause a full page load. `nav.js` intercepts any `a.nav-link` click, `fetch`es the target page, and plays the change as a typed terminal command (`cd /about`) whose `GET` line shows the real response size and fetch time. It then swaps in only the fetched `<main>` innerHTML, updates `document.title`, and pushes history state. Back/Forward decrypt the page in place instead of reloading: the page for the new URL is fetched the same way, the old text turns to noise, the new text decrypts into place, and ` :: access granted` flashes by the brand. Only elements whose children are all text are ever rewritten, and each gets its exact text back, so markup is never touched. Reduced motion, a hidden tab, and a missing GSAP (or one of its plugins) swap instantly instead. A failed fetch, or one with no response within 8s, prints a red error line, then falls back to a full page load; on Back/Forward it simply reloads.
 
 Two rules follow from this, and breaking either fails quietly rather than loudly:
 

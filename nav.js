@@ -1,14 +1,19 @@
-// Navigation: owns nav clicks, the fetch, the <main> swap and history, and plays each page change as a
-// typed terminal command timed by the real fetch (rules in nav/rules.js). Everything injected here lives
-// outside <main>, so the swap never touches it. Reduced motion, a hidden tab or a missing GSAP swap
-// instantly. Every animated phase has a timer fallback, so nothing waits on a frame that never comes.
+// Navigation: owns nav clicks, Back/Forward, the fetch, the <main> swap and history (rules in
+// nav/rules.js). A nav click plays as a typed terminal command timed by the real fetch; Back/Forward
+// decrypt the page in place. Everything injected here lives outside <main>, so the swap never touches it.
+// Reduced motion, a hidden tab or a missing GSAP (or plugin) swap instantly. Every animated phase has a
+// timer fallback, so nothing waits on a frame that never comes.
 
 import { currentStage } from './fx.js'
+import { corruptText } from './hunt/corruption.js'
+import { GLYPHS } from './hunt/rain.js'
 import {
+  DECRYPT_STATUS,
   ENTER_PAUSE,
   WIPE_MS,
   commandFor,
   errorLine,
+  isPlainText,
   outputGap,
   outputLines,
   pageOf,
@@ -21,15 +26,21 @@ import {
 } from './nav/rules.js'
 
 const { gsap, ScrambleTextPlugin, CustomEase } = window
-const animate = Boolean(gsap)
+// The transitions use all three, so without any one of them every page change is instant.
+const animate = Boolean(gsap && ScrambleTextPlugin && CustomEase)
 const CLIPPED = 'inset(0% 100% 0% 0%)' // four values each, so GSAP can interpolate between them
 // A left-to-right stepped wipe. lazy: false clips at once: GSAP would otherwise wait for its next frame,
 // and freshly swapped content would paint unclipped for one frame.
 const WIPE = { clipPath: 'inset(0% 0% 0% 0%)', ease: 'steps(10)', lazy: false }
 const SCROLL_MS = 240
 const FAIL_PAUSE = 600 // ms the error line stays up before the full page load
+const FETCH_DEADLINE = 8000 // ms before a stalled fetch counts as failed
+const NOISE_MS = 160 // ms each old line shows glyph noise on Back/Forward
+const NOISE_FRAME = 40 // ms between noise frames
+const SWEEP_MS = 600 // ms the scan line takes down the pane
+const STATUS_MS = 1400 // ms the brand status is up, fades included
 
-if (animate && ScrambleTextPlugin && CustomEase) {
+if (animate) {
   gsap.registerPlugin(ScrambleTextPlugin, CustomEase)
   // The CRT power cycle's curves.
   CustomEase.create('crtCollapse', '0.7,0,0.9,0.5')
@@ -38,8 +49,12 @@ if (animate && ScrambleTextPlugin && CustomEase) {
 
 let afterSwap = () => {}
 let current = null // the running transition: { fast, finishers, done }
-let latest = null // the newest navigation's request, so a slower instant response never lands over it
+// The newest navigation's request. Anything older never swaps, pushes or falls back over it.
+let latest = null
 let prompt = null
+let scanline = null
+let sweeping = null // the scan line's sweep, so the next Back can end it first
+let flashing = null // the brand status's fade, likewise
 
 export function initNavigation(options) {
   afterSwap = options.afterSwap
@@ -53,6 +68,15 @@ export function initNavigation(options) {
     while (current) await finishNow()
     if (page !== pageOf(location.pathname)) navigate(page, 'nav')
   })
+  // Back/Forward have already moved the URL; this brings <main> in line with it. The request becomes the
+  // newest at once, so a transition still running sees it was overtaken and won't push over it.
+  window.addEventListener('popstate', async () => {
+    const page = pageOf(location.pathname)
+    const request = load(page)
+    latest = request
+    while (current && request === latest) await finishNow()
+    if (request === latest) navigate(page, 'history', request)
+  })
 }
 
 export function updateActiveNav(page = pageOf(location.pathname)) {
@@ -61,30 +85,40 @@ export function updateActiveNav(page = pageOf(location.pathname)) {
   })
 }
 
-async function navigate(page, trigger) {
-  const request = load(page)
+// trigger is 'nav' (a click, which pushes history) or 'history' (Back/Forward, whose URL is already set).
+async function navigate(page, trigger, request = load(page)) {
   latest = request
+  const push = trigger === 'nav'
   const kind = transitionFor(trigger, {
     reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
     hidden: document.hidden,
     animate,
   })
   try {
-    if (kind === 'instant') await instant(page, request)
+    if (kind === 'instant') await instant(page, request, push)
+    else if (kind === 'decrypt') await run(kind, () => decrypt(page, request))
     else await run(kind, () => command(page, request))
   } catch (error) {
     // A broken transition must never strand the page half-swapped; a real load always works.
     console.error(error)
-    location.href = page
+    fallback(page, push)
   }
 }
 
-// Settles to the parsed page, or to { ok: false, reason } on a network error, an HTTP error, or a
-// response with no <main>. Never rejects.
+// The full page load behind every failure. A history entry's URL is already the page, so it reloads.
+function fallback(page, push) {
+  if (push) location.href = page
+  else location.reload()
+}
+
+// Settles to the parsed page, or to { ok: false, reason } on a network error, an HTTP error, a response
+// with no <main>, or no response within FETCH_DEADLINE. Never rejects.
 async function load(page) {
   const start = performance.now()
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), FETCH_DEADLINE)
   try {
-    const response = await fetch(page)
+    const response = await fetch(page, { signal: controller.signal })
     if (!response.ok) return { ok: false, reason: reasonFor(response.status, response.statusText) }
     const html = await response.text()
     const ms = performance.now() - start
@@ -95,27 +129,29 @@ async function load(page) {
     const bytes = new TextEncoder().encode(html).length
     return { ok: true, main, title: doc.title, stats: { status, statusText, bytes, ms } }
   } catch {
-    return { ok: false, reason: 'connection reset' }
+    return { ok: false, reason: controller.signal.aborted ? 'connection timed out' : 'connection reset' }
+  } finally {
+    clearTimeout(timer)
   }
 }
 
-async function instant(page, request) {
+async function instant(page, request, push) {
   const result = await request
-  if (request !== latest) return // a newer click already took over
+  if (request !== latest) return // a newer navigation already took over
   if (!result.ok) {
-    location.href = page
+    fallback(page, push)
     return
   }
-  swap(page, result)
+  swap(page, result, push)
   afterSwap()
 }
 
-function swap(page, result) {
+function swap(page, result, push) {
   const main = document.querySelector('main')
   main.innerHTML = result.main.innerHTML
   main.scrollTop = 0
   document.title = result.title
-  history.pushState({ page }, '', page)
+  if (push) history.pushState({ page }, '', page)
   updateActiveNav(page)
 }
 
@@ -128,16 +164,23 @@ async function command(page, request) {
   cursor.remove()
   updateActiveNav(page)
   const result = await request
+  if (request !== latest) {
+    hidePrompt() // a Back or Forward overtook this one while it waited, and swaps in its place
+    return
+  }
   if (!result.ok) {
     await print(root, [{ text: errorLine(page, result.reason), kind: 'alert' }])
     await pause(FAIL_PAUSE)
-    location.href = page
+    if (request === latest) location.href = page
+    else hidePrompt()
     return
   }
   await print(root, outputLines({ status: statusLine({ page, ...result.stats }), stage: currentStage() }))
   const main = document.querySelector('main')
   await scrollOut(main)
-  swap(page, result)
+  // Overtaken during the output, it still swaps (the old page has scrolled away) but leaves history to
+  // the Back/Forward, whose own swap follows at once.
+  swap(page, result, request === latest)
   await reveal(main)
   hidePrompt()
   afterSwap()
@@ -156,6 +199,7 @@ function showPrompt() {
     root.append(line)
     document.querySelector('.terminal-container').append(root)
   }
+  clearOutput() // an error line left up by a fallback load that never happened
   prompt.ps1.textContent = promptFor(currentStage())
   prompt.cmd.textContent = ''
   prompt.cmd.after(prompt.cursor)
@@ -165,6 +209,10 @@ function showPrompt() {
 
 function hidePrompt() {
   prompt.root.classList.remove('show')
+  clearOutput()
+}
+
+function clearOutput() {
   prompt.root.querySelectorAll('.nav-out').forEach(line => line.remove())
 }
 
@@ -228,14 +276,29 @@ async function reveal(main) {
   const visible = blocksOf(main).filter(block => block.getBoundingClientRect().top - top < main.clientHeight)
   if (visible.length === 0) return
   const { stagger, wipe } = revealPlan(visible.length)
+  const kept = keepStyles(visible)
   const tl = gsap.timeline().fromTo(
     visible,
     { clipPath: CLIPPED },
     { ...WIPE, duration: wipe / 1000, stagger: stagger / 1000 },
   )
   await play(tl, stagger * (visible.length - 1) + wipe + 500)
-  gsap.set(visible, { clearProps: 'clipPath,transform' })
-  visible.forEach(block => block.getAttribute('style') === '' && block.removeAttribute('style'))
+  unclip(kept)
+}
+
+// Each element's style attribute as the page had it. Clearing the clip through the CSSOM would leave
+// the attribute reformatted, so unclip() puts the original string back instead.
+function keepStyles(elements) {
+  return elements.map(el => ({ el, style: el.getAttribute('style') }))
+}
+
+function unclip(kept) {
+  kept.forEach(({ el, style }) => {
+    // Set first even when removing: a bare removeAttribute after GSAP's writes is undone by Chrome's
+    // lazily synced inline style, which puts back an empty style="".
+    el.setAttribute('style', style ?? '')
+    if (style === null) el.removeAttribute('style')
+  })
 }
 
 // The element children of main's sections (or of main). A block taller than the pane is split into its
@@ -246,6 +309,153 @@ function blocksOf(main) {
   return blocks.flatMap(block =>
     block.offsetHeight > main.clientHeight && block.children.length ? [...block.children] : [block],
   )
+}
+
+// --- the decrypt transition (Back/Forward) ---
+
+// No prompt, since nobody typed. A scan line sweeps the pane, the old page's lines dissolve into noise,
+// and the new page's lines decrypt in place. Only plain-text leaves (isPlainText) are ever rewritten, and
+// each gets its exact text back, so markup and the about-page comment are never touched.
+async function decrypt(page, request) {
+  const main = document.querySelector('main')
+  sweep(main)
+  const old = await noiseOut(main)
+  const result = await request
+  if (request !== latest || !result.ok) {
+    restore(old) // overtaken by a newer Back/Forward, or about to reload
+    if (request === latest) fallback(page, false)
+    return
+  }
+  swap(page, result, false)
+  await decryptIn(main)
+  flashStatus()
+  afterSwap()
+}
+
+// One scan line down the pane, not awaited. It lives outside <main>, so the swap never touches it.
+function sweep(main) {
+  if (!scanline) {
+    scanline = element('div', 'nav-scanline')
+    scanline.setAttribute('aria-hidden', 'true')
+    document.querySelector('.terminal-container').append(scanline)
+  }
+  sweeping?.progress(1)
+  gsap.set(scanline, { top: main.offsetTop, left: main.offsetLeft, width: main.clientWidth })
+  const to = { y: main.clientHeight - 2, duration: SWEEP_MS / 1000, ease: 'none', lazy: false }
+  sweeping = gsap.timeline().fromTo(scanline, { y: 0, autoAlpha: 1 }, to).set(scanline, { autoAlpha: 0 })
+  play(sweeping, SWEEP_MS + 500)
+}
+
+// The old page's on-screen lines turn to glyph noise top-down, and stay noise until the swap replaces
+// them. Resolves to the lines it took, so a swap that doesn't happen can put them back.
+async function noiseOut(main) {
+  const leaves = take(onScreen(main, textLeaves(main)))
+  if (leaves.length === 0) return leaves
+  const { stagger } = revealPlan(leaves.length, { wipe: 0, maxStagger: 30 })
+  const tl = gsap.timeline()
+  leaves.forEach(({ el, original }, i) => {
+    for (let at = 0; at <= NOISE_MS; at += NOISE_FRAME) {
+      tl.call(() => {
+        el.textContent = noise(original)
+      }, null, (i * stagger + at) / 1000)
+    }
+  })
+  await play(tl, stagger * (leaves.length - 1) + NOISE_MS + 500)
+  return leaves
+}
+
+// The new page's on-screen lines start as corrupted text and decrypt into the real thing top-down.
+// Whatever holds no text at all (images, inputs) wipes in at its place in the reading order. Every line
+// gets its exact text back however this ends, before afterSwap() sees the page.
+async function decryptIn(main) {
+  const texts = textLeaves(main)
+  const order = [] // in reading order: { el, text: true } decrypts, { el, text: false } wipes
+  onScreen(main, [...main.querySelectorAll('*')]).forEach(el => {
+    if (texts.includes(el)) order.push({ el, text: true })
+    else if (!texts.some(leaf => el.contains(leaf)) && !order.some(step => step.el.contains(el))) {
+      order.push({ el, text: false })
+    }
+  })
+  if (order.length === 0) return
+  const leaves = take(order.filter(step => step.text).map(step => step.el))
+  const kept = keepStyles(order.filter(step => !step.text).map(step => step.el))
+  try {
+    const { stagger } = revealPlan(leaves.length, { wipe: 0, maxStagger: 70 })
+    const tl = gsap.timeline()
+    let slot = 0
+    let end = 0
+    order.forEach(({ el, text }) => {
+      const at = slot * stagger
+      if (text) {
+        const { original } = leaves[slot++]
+        const ms = Math.min(600, 220 + 5 * original.length)
+        el.textContent = corruptText(original, 1, Math.random)
+        const scrambleText = { text: original, chars: GLYPHS }
+        tl.to(el, { scrambleText, duration: ms / 1000, ease: 'none', lazy: false }, at / 1000)
+        end = Math.max(end, at + ms)
+      } else {
+        // As the next line starts to decrypt.
+        tl.fromTo(el, { clipPath: CLIPPED }, { ...WIPE, duration: WIPE_MS / 1000 }, at / 1000)
+        end = Math.max(end, at + WIPE_MS)
+      }
+    })
+    await play(tl, end + 500)
+  } finally {
+    restore(leaves)
+    unclip(kept)
+  }
+}
+
+// " :: access granted" beside the brand for a moment, not awaited. A Back moments ago ends its own
+// first, so there is only ever one.
+function flashStatus() {
+  const brand = document.querySelector('.brand')
+  if (!brand) return
+  flashing?.progress(1)
+  const status = element('span', 'brand-status', DECRYPT_STATUS)
+  status.setAttribute('aria-hidden', 'true')
+  brand.append(status)
+  flashing = gsap
+    .timeline()
+    .fromTo(status, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.2, lazy: false })
+    .to(status, { autoAlpha: 0, duration: 0.4 }, (STATUS_MS - 400) / 1000)
+    .call(() => status.remove())
+  play(flashing, STATUS_MS + 500)
+}
+
+// main's plain-text leaves, minus any an fx.js burst is rewriting right now.
+function textLeaves(main) {
+  return [...main.querySelectorAll('*')].filter(el => isPlainText(el) && !el.dataset.fxBusy)
+}
+
+// Takes lines for rewriting: keeps each one's exact text, and marks it busy so fx.js's bursts leave it be.
+function take(elements) {
+  return elements.map(el => {
+    el.dataset.fxBusy = '1'
+    return { el, original: el.textContent }
+  })
+}
+
+function restore(leaves) {
+  leaves.forEach(({ el, original }) => {
+    el.textContent = original
+    delete el.dataset.fxBusy
+  })
+}
+
+// The elements inside main's visible pane. A display: none element has an empty box, so it drops out.
+function onScreen(main, elements) {
+  const top = main.getBoundingClientRect().top
+  const bottom = top + main.clientHeight
+  return elements.filter(el => {
+    const box = el.getBoundingClientRect()
+    return (box.width > 0 || box.height > 0) && box.bottom > top && box.top < bottom
+  })
+}
+
+// Every visible character swapped for a random glyph; whitespace stays, so the lines keep their shape.
+function noise(text) {
+  return text.replace(/\S/gu, () => GLYPHS[Math.floor(Math.random() * GLYPHS.length)])
 }
 
 function element(tag, className, text = '') {
@@ -268,8 +478,8 @@ function run(kind, work) {
   current = transition
   html.dataset.transition = kind
   document.addEventListener('visibilitychange', onVisibility)
-  emit(kind, 'start')
   const done = (async () => {
+    await null // the work starts after the start event below, which already sees transition.done
     try {
       await work()
     } finally {
@@ -282,6 +492,7 @@ function run(kind, work) {
     }
   })()
   transition.done = done.catch(() => {})
+  emit(kind, 'start') // a listener that calls finishNow() here gets a real promise, and a fast transition
   return done
 }
 

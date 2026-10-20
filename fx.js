@@ -17,6 +17,7 @@ import {
   stageFor,
 } from './hunt/corruption.js'
 import { createRain, glyphAt, stepRain } from './hunt/rain.js'
+import { isPlainText } from './nav/rules.js'
 
 const CELL = 16 // px per rain column and row
 const TRAIL = 14 // rows in each falling streak
@@ -216,7 +217,7 @@ const BURSTS = {
   // A heading scrambles and decodes back to itself. Only plain-text headings, so markup is never lost.
   decode() {
     const headings = [...document.querySelectorAll('main h2, main h3, main .exp-role')].filter(
-      el => !el.dataset.fxBusy && [...el.childNodes].every(node => node.nodeType === Node.TEXT_NODE),
+      el => !el.dataset.fxBusy && isPlainText(el),
     )
     if (headings.length === 0) return
     const el = pick(headings, Math.random)
