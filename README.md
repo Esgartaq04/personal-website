@@ -27,6 +27,7 @@ nav.js                        — navigation: nav clicks, fetch, <main> swap, hi
 nav/rules.js                  — transition rules: command text, status line, timings (pure, unit-tested)
 nav/runner.js                 — transition runner: run, fast-forward, timer fallbacks (DOM)
 nav/decrypt.js                — the Back/Forward decrypt's phases (DOM)
+nav/crt.js                    — the CRT power cycle: the boot, and entering or leaving /root (DOM)
 nav/dom.js                    — DOM helpers the transitions share
 style.css                     — all styling; CSS variables at :root
 config.ex.js                  — EmailJS config template
@@ -108,6 +109,8 @@ These three values are client-side by nature — they ship to every visitor's br
 
 Nav clicks do **not** cause a full page load. `nav.js` intercepts any `a.nav-link` click, `fetch`es the target page, and plays the change as a typed terminal command (`cd /about`) whose `GET` line shows the real response size and fetch time. It then swaps in only the fetched `<main>` innerHTML, updates `document.title`, and pushes history state. Back/Forward decrypt the page in place instead of reloading: the page for the new URL is fetched the same way, the old text turns to noise, the new text decrypts into place, and ` :: access granted` flashes by the brand. Only elements whose children are all text are ever rewritten, and each gets its exact text back, so markup is never touched. Reduced motion, a hidden tab, and a missing GSAP (or one of its plugins) swap instantly instead. A failed fetch, or one with no response within 8s, prints a red error line, then falls back to a full page load; on Back/Forward it simply reloads.
 
+Entering or leaving `/root` power-cycles the screen like an old CRT. The breach link, `su root` in the site console, and the shell's `exit` (or `open`) collapse the page into a line, then a dot whose afterglow fades, and only then navigate; the page they lead to powers on from a dot. The first page of a browser session boots the same way, once: a reload doesn't replay it, and any key or click skips it. A tiny inline script in each page's `<head>` decides before first paint whether the screen powers on, and sets a black CSS cover that `nav/crt.js` takes over from. The cover clears itself after 1.2s whatever happens, so a blocked or broken script never leaves the page black, and a power-off navigates after 1.5s even if its animation never runs. Reduced motion skips the boot and makes `/root` entry and exit instant.
+
 Two rules follow from this, and breaking either fails quietly rather than loudly:
 
 1. **Every page's nav markup must be identical.** The nav is never re-rendered from the fetched page — whichever page loaded first supplies it for the whole session. A page that adds a nav item without the others adding it too will show a stale nav after any transition.
@@ -119,6 +122,7 @@ Adding a page therefore means: create the file with content inside `<main>`, and
 
 - `body` has `overflow: hidden`; `main` scrolls internally. Long pages scroll within the content pane, not the window.
 - `nav.js` re-runs `script.js`'s `initPageScripts()` after every swap, which clones the contact form to drop stale listeners.
+- The inline power-on script is copied into the `<head>` of all six pages, `root.html` included: with no build step it can't be shared, and it must run before first paint. Change one copy, change them all.
 
 ## Easter eggs
 

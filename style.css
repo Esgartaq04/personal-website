@@ -213,6 +213,31 @@ main::-webkit-scrollbar-thumb {
 html[data-transition="decrypt"] main {
   overflow-wrap: anywhere;
 }
+/* CRT power cycle (nav/crt.js). The head script sets html.power-on before first paint only when the
+   screen will power on. This cover keeps the painted page black until nav/crt.js takes over, and hides
+   itself after 1.2s whatever happens, so a failed script never leaves the page black. */
+html.power-on body::after { content: ""; position: fixed; inset: 0; z-index: 9700; background: #000; animation: crt-fallback 0s linear 1.2s forwards; }
+@keyframes crt-fallback { to { visibility: hidden; } }
+/* All black but for .crt-window: the black is the window's 100vmax box-shadow. The window opens and
+   closes by width and height, never a transform, which would scale the spread with it. The content
+   underneath is only ever covered. --crt-flash drives the pale green flash and the glow around it. */
+#crt {
+  position: fixed;
+  inset: 0;
+  z-index: 9700; /* over everything, the console, toasts and contact overlay included */
+  pointer-events: none;
+  overflow: hidden;
+}
+.crt-window {
+  --crt-flash: 0;
+  position: absolute;
+  inset: 0;
+  margin: auto; /* centred at any width and height */
+  width: 100%;
+  height: 100%;
+  background: rgba(214, 255, 224, var(--crt-flash));
+  box-shadow: 0 0 12px 4px rgba(214, 255, 224, var(--crt-flash)), 0 0 0 100vmax #000;
+}
 
 /* Elements */
 h1, h2, h3 {
@@ -663,6 +688,11 @@ html.fx-2[data-transition] .terminal-container::after {
   opacity: 1;
   animation: none;
   text-decoration: underline;
+}
+/* It sits over the bottom of the pane, where the transition prompt prints, and would strike through the
+   panic line. Nothing needs it mid-transition, so it steps out of the way. */
+html[data-transition] #fx-breach {
+  visibility: hidden;
 }
 
 /* Rooted: the visitor owns the box. Calm, steady, a little brighter. */

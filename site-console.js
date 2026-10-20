@@ -5,6 +5,7 @@
 import { complete, createContext, execute, historyNav } from './cli/engine.js'
 import { corruptText } from './hunt/corruption.js'
 import { registerConsole } from './hunt/console.js'
+import { powerOffTo } from './nav.js'
 
 export function isConsoleChord(event) {
   return event.ctrlKey && !event.altKey && !event.metaKey && event.code === 'Backquote'
@@ -149,10 +150,9 @@ export function createSiteConsole(deps) {
     setPrompt()
     if (result.exit) close()
     if (result.navigate) {
+      // The output (ACCESS GRANTED, switching to /root...) stays up while the screen collapses over it.
       input.disabled = true
-      setTimeout(() => {
-        window.location.href = result.navigate
-      }, 700)
+      powerOffTo(result.navigate)
     }
   }
 

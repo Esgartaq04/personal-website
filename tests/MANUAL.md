@@ -63,6 +63,14 @@ Seed progress quickly from the console: `localStorage.setItem('egt.eggs', JSON.s
 - [ ] Back to `/about`: the DOM still contains the `[recovered fragment]` comment, and project cards, links, and the contact form are intact and work.
 - [ ] Press Back three times quickly. You land on the right page with no doubled or scrambled text left over.
 - [ ] Back to the very first page of the session works; there's no reload loop.
+- [ ] New tab on any page: the screen powers on from a dot within about 0.8s; a key press skips it. Reload: no boot.
+- [ ] Block `cdnjs.cloudflare.com` and open a fresh tab. The page is visible within about 1.2s and is never stuck black.
+- [ ] At stage 5, click `> /root awaits_`. The site collapses to a line, then a dot that fades, and `/root` powers on.
+- [ ] At stage 5, the `> /root awaits_` link is hidden while a nav transition's prompt is up, so it never strikes through the kernel-panic line.
+- [ ] `su root` with the right passphrase: the same power cycle into `/root` (`session restored`).
+- [ ] `exit` in the `/root` shell: the shell powers off and the home page powers on.
+- [ ] Reduced motion: no boot, and `/root` entry and exit navigate instantly.
+- [ ] Open the site in a background tab (middle-click) and switch to it later. There's no boot stuck on screen.
 
 ## Shell
 

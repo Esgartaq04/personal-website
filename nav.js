@@ -1,9 +1,13 @@
 // Navigation: owns nav clicks, Back/Forward, the fetch, the <main> swap and history (rules in
 // nav/rules.js). A nav click plays as a typed terminal command timed by the real fetch, built here;
-// Back/Forward decrypt the page in place (nav/decrypt.js). Every transition plays through nav/runner.js.
-// Everything injected lives outside <main>, so the swap never touches it. Reduced motion, a hidden tab or
-// a missing GSAP (or plugin) swap instantly. Every animated phase has a timer fallback, so nothing waits
-// on a frame that never comes.
+// Back/Forward decrypt the page in place (nav/decrypt.js); entering or leaving /root power-cycles the
+// screen (nav/crt.js), which also boots the first page of a session. Every transition plays through
+// nav/runner.js. Everything injected lives outside <main>, so the swap never touches it. Reduced motion,
+// a hidden tab or a missing GSAP (or plugin) swap or navigate instantly. Every animated phase has a timer
+// fallback, so nothing waits on a frame that never comes.
+//
+// root.html loads this file too, for the power cycle alone: importing it only runs powerOn(). Clicks,
+// Back/Forward and history are left alone until a page calls initNavigation().
 
 import { currentStage } from './fx.js'
 import {
@@ -18,12 +22,14 @@ import {
   reasonFor,
   revealPlan,
   statusLine,
-  transitionFor,
   typingDelays,
 } from './nav/rules.js'
 import { CLIPPED, WIPE, element, keepStyles, unclip } from './nav/dom.js'
-import { animate, current, emit, finishNow, play, run } from './nav/runner.js'
+import { current, emit, finishNow, kindFor, play, run } from './nav/runner.js'
 import { decryptIn, flashStatus, noiseOut, restore, sweep } from './nav/decrypt.js'
+import { powerOffTo, powerOn } from './nav/crt.js'
+
+export { powerOffTo }
 
 const { gsap } = window
 const SCROLL_MS = 240
@@ -35,10 +41,20 @@ let afterSwap = () => {}
 let latest = null
 let prompt = null
 
+// The boot, or the power-on after a power-off: only when this page's head script asked for one.
+powerOn()
+
 export function initNavigation(options) {
   afterSwap = options.afterSwap
   history.replaceState({ page: pageOf(location.pathname) }, '')
   document.addEventListener('click', async event => {
+    // The stage 5 breach link (fx.js) leads to /root, so it power-cycles like every other way in.
+    const breach = event.target.closest?.('a#fx-breach')
+    if (breach) {
+      event.preventDefault()
+      powerOffTo(breach.getAttribute('href'))
+      return
+    }
     const link = event.target.closest?.('a.nav-link')
     if (!link) return
     event.preventDefault()
@@ -68,11 +84,7 @@ export function updateActiveNav(page = pageOf(location.pathname)) {
 async function navigate(page, trigger, request = load(page)) {
   latest = request
   const push = trigger === 'nav'
-  const kind = transitionFor(trigger, {
-    reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-    hidden: document.hidden,
-    animate,
-  })
+  const kind = kindFor(trigger)
   try {
     if (kind === 'instant') await instant(page, request, push)
     else if (kind === 'decrypt') await run(kind, () => decrypt(page, request))

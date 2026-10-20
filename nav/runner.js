@@ -1,6 +1,8 @@
 // The transition runner: GSAP setup, and run / finishNow / play / emit around whichever transition is
 // running. Touches the DOM (<html data-transition>, the egt:transition event, visibilitychange). Every
-// choreography (nav.js, nav/decrypt.js) plays through it, so a fast-forward reaches all of them.
+// choreography (nav.js, nav/decrypt.js, nav/crt.js) plays through it, so a fast-forward reaches all of them.
+
+import { transitionFor } from './rules.js'
 
 const { gsap, ScrambleTextPlugin, CustomEase } = window
 // The transitions use all three, so without any one of them every page change is instant.
@@ -15,6 +17,16 @@ if (animate) {
 
 // The running transition: { fast, finishers, done }, or null. Importers read it as a live binding.
 export let current = null
+
+// The transition a trigger ('nav', 'history' or 'root') gets right now: 'instant' under reduced motion,
+// in a hidden tab, or without GSAP.
+export function kindFor(trigger) {
+  return transitionFor(trigger, {
+    reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    hidden: document.hidden,
+    animate,
+  })
+}
 
 // Runs one transition: marks <html data-transition>, announces start and end, and clears both even if
 // the work throws. Hiding the tab mid-way fast-forwards it, so the swap never waits on a hidden tab.
