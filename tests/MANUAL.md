@@ -59,7 +59,7 @@ Seed progress quickly from the console: `localStorage.setItem('egt.eggs', JSON.s
 - [ ] Reduced motion (rendering emulation): nav clicks swap instantly, with no prompt.
 - [ ] Start a nav click, then switch tabs at once. Coming back, the new page is in place.
 - [ ] Throttle the network with a custom devtools profile of 9000 ms latency, then click a nav link. After 8s a red `cd: /<page>: connection timed out` line appears, then a full page load is attempted.
-- [ ] Back/Forward after a few nav clicks: no reload (Network shows a `fetch`, not a document load), text decrypts in place in 1s or less, and ` :: access granted` flashes by the brand.
+- [ ] Back/Forward after a few nav clicks: no reload (Network shows a `fetch`, not a document load), the whole transition (the old text turning to noise, then the new text decrypting in place) takes 1s or less, and ` :: access granted` flashes by the brand.
 - [ ] Back to `/about`: the DOM still contains the `[recovered fragment]` comment, and project cards, links, and the contact form are intact and work.
 - [ ] Press Back three times quickly. You land on the right page with no doubled or scrambled text left over.
 - [ ] Back to the very first page of the session works; there's no reload loop.

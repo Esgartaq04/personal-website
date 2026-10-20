@@ -35,8 +35,17 @@ const WIPE = { clipPath: 'inset(0% 0% 0% 0%)', ease: 'steps(10)', lazy: false }
 const SCROLL_MS = 240
 const FAIL_PAUSE = 600 // ms the error line stays up before the full page load
 const FETCH_DEADLINE = 8000 // ms before a stalled fetch counts as failed
-const NOISE_MS = 160 // ms each old line shows glyph noise on Back/Forward
+// Back/Forward decrypt timings. Worst case, old noise then new decrypt:
+// NOISE_BUDGET + NOISE_MS + DECRYPT_BUDGET + DECRYPT_MAX = 120 + 160 + 250 + 450 = 980ms, inside 1s.
+const NOISE_MS = 160 // ms each old line shows glyph noise
 const NOISE_FRAME = 40 // ms between noise frames
+const NOISE_BUDGET = 120 // ms from the first old line's noise to the last one's start
+const NOISE_STAGGER = 30 // ms between old lines at most
+const DECRYPT_BASE = 220 // ms a new line takes to decrypt, plus DECRYPT_PER_CHAR per character...
+const DECRYPT_PER_CHAR = 5
+const DECRYPT_MAX = 450 // ...up to this
+const DECRYPT_BUDGET = 250 // ms from the first new line's decrypt to the last one's start
+const DECRYPT_STAGGER = 70 // ms between new lines at most
 const SWEEP_MS = 600 // ms the scan line takes down the pane
 const STATUS_MS = 1400 // ms the brand status is up, fades included
 
@@ -351,7 +360,7 @@ function sweep(main) {
 async function noiseOut(main) {
   const leaves = take(onScreen(main, textLeaves(main)))
   if (leaves.length === 0) return leaves
-  const { stagger } = revealPlan(leaves.length, { wipe: 0, maxStagger: 30 })
+  const { stagger } = revealPlan(leaves.length, { budget: NOISE_BUDGET, wipe: 0, maxStagger: NOISE_STAGGER })
   const tl = gsap.timeline()
   leaves.forEach(({ el, original }, i) => {
     for (let at = 0; at <= NOISE_MS; at += NOISE_FRAME) {
@@ -380,7 +389,8 @@ async function decryptIn(main) {
   const leaves = take(order.filter(step => step.text).map(step => step.el))
   const kept = keepStyles(order.filter(step => !step.text).map(step => step.el))
   try {
-    const { stagger } = revealPlan(leaves.length, { wipe: 0, maxStagger: 70 })
+    const plan = { budget: DECRYPT_BUDGET, wipe: 0, maxStagger: DECRYPT_STAGGER }
+    const { stagger } = revealPlan(leaves.length, plan)
     const tl = gsap.timeline()
     let slot = 0
     let end = 0
@@ -388,7 +398,7 @@ async function decryptIn(main) {
       const at = slot * stagger
       if (text) {
         const { original } = leaves[slot++]
-        const ms = Math.min(600, 220 + 5 * original.length)
+        const ms = Math.min(DECRYPT_MAX, DECRYPT_BASE + DECRYPT_PER_CHAR * original.length)
         el.textContent = corruptText(original, 1, Math.random)
         const scrambleText = { text: original, chars: GLYPHS }
         tl.to(el, { scrambleText, duration: ms / 1000, ease: 'none', lazy: false }, at / 1000)
