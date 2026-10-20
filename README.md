@@ -23,8 +23,11 @@ experience.html   /experience — employment, leadership, education
 projects.html     /projects   — project cards
 contact.html      /contact    — resume download, contact form, socials
 script.js                     — EmailJS init, typewriter, form handling (module)
-nav.js                        — navigation: nav clicks, fetch, <main> swap, history, transitions
-nav/                          — transition rules: command text, status line, timings (pure, unit-tested)
+nav.js                        — navigation: nav clicks, fetch, <main> swap, history, the command transition
+nav/rules.js                  — transition rules: command text, status line, timings (pure, unit-tested)
+nav/runner.js                 — transition runner: run, fast-forward, timer fallbacks (DOM)
+nav/decrypt.js                — the Back/Forward decrypt's phases (DOM)
+nav/dom.js                    — DOM helpers the transitions share
 style.css                     — all styling; CSS variables at :root
 config.ex.js                  — EmailJS config template
 config.js                     — EmailJS config, actually loaded

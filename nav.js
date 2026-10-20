@@ -1,19 +1,16 @@
 // Navigation: owns nav clicks, Back/Forward, the fetch, the <main> swap and history (rules in
-// nav/rules.js). A nav click plays as a typed terminal command timed by the real fetch; Back/Forward
-// decrypt the page in place. Everything injected here lives outside <main>, so the swap never touches it.
-// Reduced motion, a hidden tab or a missing GSAP (or plugin) swap instantly. Every animated phase has a
-// timer fallback, so nothing waits on a frame that never comes.
+// nav/rules.js). A nav click plays as a typed terminal command timed by the real fetch, built here;
+// Back/Forward decrypt the page in place (nav/decrypt.js). Every transition plays through nav/runner.js.
+// Everything injected lives outside <main>, so the swap never touches it. Reduced motion, a hidden tab or
+// a missing GSAP (or plugin) swap instantly. Every animated phase has a timer fallback, so nothing waits
+// on a frame that never comes.
 
 import { currentStage } from './fx.js'
-import { corruptText } from './hunt/corruption.js'
-import { GLYPHS } from './hunt/rain.js'
 import {
-  DECRYPT_STATUS,
   ENTER_PAUSE,
   WIPE_MS,
   commandFor,
   errorLine,
-  isPlainText,
   outputGap,
   outputLines,
   pageOf,
@@ -24,46 +21,19 @@ import {
   transitionFor,
   typingDelays,
 } from './nav/rules.js'
+import { CLIPPED, WIPE, element, keepStyles, unclip } from './nav/dom.js'
+import { animate, current, emit, finishNow, play, run } from './nav/runner.js'
+import { decryptIn, flashStatus, noiseOut, restore, sweep } from './nav/decrypt.js'
 
-const { gsap, ScrambleTextPlugin, CustomEase } = window
-// The transitions use all three, so without any one of them every page change is instant.
-const animate = Boolean(gsap && ScrambleTextPlugin && CustomEase)
-const CLIPPED = 'inset(0% 100% 0% 0%)' // four values each, so GSAP can interpolate between them
-// A left-to-right stepped wipe. lazy: false clips at once: GSAP would otherwise wait for its next frame,
-// and freshly swapped content would paint unclipped for one frame.
-const WIPE = { clipPath: 'inset(0% 0% 0% 0%)', ease: 'steps(10)', lazy: false }
+const { gsap } = window
 const SCROLL_MS = 240
 const FAIL_PAUSE = 600 // ms the error line stays up before the full page load
 const FETCH_DEADLINE = 8000 // ms before a stalled fetch counts as failed
-// Back/Forward decrypt timings. Worst case, old noise then new decrypt:
-// NOISE_BUDGET + NOISE_MS + DECRYPT_BUDGET + DECRYPT_MAX = 120 + 160 + 250 + 450 = 980ms, inside 1s.
-const NOISE_MS = 160 // ms each old line shows glyph noise
-const NOISE_FRAME = 40 // ms between noise frames
-const NOISE_BUDGET = 120 // ms from the first old line's noise to the last one's start
-const NOISE_STAGGER = 30 // ms between old lines at most
-const DECRYPT_BASE = 220 // ms a new line takes to decrypt, plus DECRYPT_PER_CHAR per character...
-const DECRYPT_PER_CHAR = 5
-const DECRYPT_MAX = 450 // ...up to this
-const DECRYPT_BUDGET = 250 // ms from the first new line's decrypt to the last one's start
-const DECRYPT_STAGGER = 70 // ms between new lines at most
-const SWEEP_MS = 600 // ms the scan line takes down the pane
-const STATUS_MS = 1400 // ms the brand status is up, fades included
-
-if (animate) {
-  gsap.registerPlugin(ScrambleTextPlugin, CustomEase)
-  // The CRT power cycle's curves.
-  CustomEase.create('crtCollapse', '0.7,0,0.9,0.5')
-  CustomEase.create('crtOpen', '0.2,0.8,0.3,1')
-}
 
 let afterSwap = () => {}
-let current = null // the running transition: { fast, finishers, done }
 // The newest navigation's request. Anything older never swaps, pushes or falls back over it.
 let latest = null
 let prompt = null
-let scanline = null
-let sweeping = null // the scan line's sweep, so the next Back can end it first
-let flashing = null // the brand status's fade, likewise
 
 export function initNavigation(options) {
   afterSwap = options.afterSwap
@@ -108,9 +78,10 @@ async function navigate(page, trigger, request = load(page)) {
     else if (kind === 'decrypt') await run(kind, () => decrypt(page, request))
     else await run(kind, () => command(page, request))
   } catch (error) {
-    // A broken transition must never strand the page half-swapped; a real load always works.
+    // A broken transition must never strand the page half-swapped; a real load always works. Unless a
+    // newer navigation (a Back, say) has taken over: it swaps its own page in, so this one stands aside.
     console.error(error)
-    fallback(page, push)
+    if (request === latest) fallback(page, push)
   }
 }
 
@@ -295,21 +266,6 @@ async function reveal(main) {
   unclip(kept)
 }
 
-// Each element's style attribute as the page had it. Clearing the clip through the CSSOM would leave
-// the attribute reformatted, so unclip() puts the original string back instead.
-function keepStyles(elements) {
-  return elements.map(el => ({ el, style: el.getAttribute('style') }))
-}
-
-function unclip(kept) {
-  kept.forEach(({ el, style }) => {
-    // Set first even when removing: a bare removeAttribute after GSAP's writes is undone by Chrome's
-    // lazily synced inline style, which puts back an empty style="".
-    el.setAttribute('style', style ?? '')
-    if (style === null) el.removeAttribute('style')
-  })
-}
-
 // The element children of main's sections (or of main). A block taller than the pane is split into its
 // children, so a long page still reads top-down instead of wiping as one slab.
 function blocksOf(main) {
@@ -323,8 +279,7 @@ function blocksOf(main) {
 // --- the decrypt transition (Back/Forward) ---
 
 // No prompt, since nobody typed. A scan line sweeps the pane, the old page's lines dissolve into noise,
-// and the new page's lines decrypt in place. Only plain-text leaves (isPlainText) are ever rewritten, and
-// each gets its exact text back, so markup and the about-page comment are never touched.
+// and the new page's lines decrypt in place (the phases are in nav/decrypt.js).
 async function decrypt(page, request) {
   const main = document.querySelector('main')
   sweep(main)
@@ -339,203 +294,4 @@ async function decrypt(page, request) {
   await decryptIn(main)
   flashStatus()
   afterSwap()
-}
-
-// One scan line down the pane, not awaited. It lives outside <main>, so the swap never touches it.
-function sweep(main) {
-  if (!scanline) {
-    scanline = element('div', 'nav-scanline')
-    scanline.setAttribute('aria-hidden', 'true')
-    document.querySelector('.terminal-container').append(scanline)
-  }
-  sweeping?.progress(1)
-  gsap.set(scanline, { top: main.offsetTop, left: main.offsetLeft, width: main.clientWidth })
-  const to = { y: main.clientHeight - 2, duration: SWEEP_MS / 1000, ease: 'none', lazy: false }
-  sweeping = gsap.timeline().fromTo(scanline, { y: 0, autoAlpha: 1 }, to).set(scanline, { autoAlpha: 0 })
-  play(sweeping, SWEEP_MS + 500)
-}
-
-// The old page's on-screen lines turn to glyph noise top-down, and stay noise until the swap replaces
-// them. Resolves to the lines it took, so a swap that doesn't happen can put them back.
-async function noiseOut(main) {
-  const leaves = take(onScreen(main, textLeaves(main)))
-  if (leaves.length === 0) return leaves
-  const { stagger } = revealPlan(leaves.length, { budget: NOISE_BUDGET, wipe: 0, maxStagger: NOISE_STAGGER })
-  const tl = gsap.timeline()
-  leaves.forEach(({ el, original }, i) => {
-    for (let at = 0; at <= NOISE_MS; at += NOISE_FRAME) {
-      tl.call(() => {
-        el.textContent = noise(original)
-      }, null, (i * stagger + at) / 1000)
-    }
-  })
-  await play(tl, stagger * (leaves.length - 1) + NOISE_MS + 500)
-  return leaves
-}
-
-// The new page's on-screen lines start as corrupted text and decrypt into the real thing top-down.
-// Whatever holds no text at all (images, inputs) wipes in at its place in the reading order. Every line
-// gets its exact text back however this ends, before afterSwap() sees the page.
-async function decryptIn(main) {
-  const texts = textLeaves(main)
-  const order = [] // in reading order: { el, text: true } decrypts, { el, text: false } wipes
-  onScreen(main, [...main.querySelectorAll('*')]).forEach(el => {
-    if (texts.includes(el)) order.push({ el, text: true })
-    else if (!texts.some(leaf => el.contains(leaf)) && !order.some(step => step.el.contains(el))) {
-      order.push({ el, text: false })
-    }
-  })
-  if (order.length === 0) return
-  const leaves = take(order.filter(step => step.text).map(step => step.el))
-  const kept = keepStyles(order.filter(step => !step.text).map(step => step.el))
-  try {
-    const plan = { budget: DECRYPT_BUDGET, wipe: 0, maxStagger: DECRYPT_STAGGER }
-    const { stagger } = revealPlan(leaves.length, plan)
-    const tl = gsap.timeline()
-    let slot = 0
-    let end = 0
-    order.forEach(({ el, text }) => {
-      const at = slot * stagger
-      if (text) {
-        const { original } = leaves[slot++]
-        const ms = Math.min(DECRYPT_MAX, DECRYPT_BASE + DECRYPT_PER_CHAR * original.length)
-        el.textContent = corruptText(original, 1, Math.random)
-        const scrambleText = { text: original, chars: GLYPHS }
-        tl.to(el, { scrambleText, duration: ms / 1000, ease: 'none', lazy: false }, at / 1000)
-        end = Math.max(end, at + ms)
-      } else {
-        // As the next line starts to decrypt.
-        tl.fromTo(el, { clipPath: CLIPPED }, { ...WIPE, duration: WIPE_MS / 1000 }, at / 1000)
-        end = Math.max(end, at + WIPE_MS)
-      }
-    })
-    await play(tl, end + 500)
-  } finally {
-    restore(leaves)
-    unclip(kept)
-  }
-}
-
-// " :: access granted" beside the brand for a moment, not awaited. A Back moments ago ends its own
-// first, so there is only ever one.
-function flashStatus() {
-  const brand = document.querySelector('.brand')
-  if (!brand) return
-  flashing?.progress(1)
-  const status = element('span', 'brand-status', DECRYPT_STATUS)
-  status.setAttribute('aria-hidden', 'true')
-  brand.append(status)
-  flashing = gsap
-    .timeline()
-    .fromTo(status, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.2, lazy: false })
-    .to(status, { autoAlpha: 0, duration: 0.4 }, (STATUS_MS - 400) / 1000)
-    .call(() => status.remove())
-  play(flashing, STATUS_MS + 500)
-}
-
-// main's plain-text leaves, minus any an fx.js burst is rewriting right now.
-function textLeaves(main) {
-  return [...main.querySelectorAll('*')].filter(el => isPlainText(el) && !el.dataset.fxBusy)
-}
-
-// Takes lines for rewriting: keeps each one's exact text, and marks it busy so fx.js's bursts leave it be.
-function take(elements) {
-  return elements.map(el => {
-    el.dataset.fxBusy = '1'
-    return { el, original: el.textContent }
-  })
-}
-
-function restore(leaves) {
-  leaves.forEach(({ el, original }) => {
-    el.textContent = original
-    delete el.dataset.fxBusy
-  })
-}
-
-// The elements inside main's visible pane. A display: none element has an empty box, so it drops out.
-function onScreen(main, elements) {
-  const top = main.getBoundingClientRect().top
-  const bottom = top + main.clientHeight
-  return elements.filter(el => {
-    const box = el.getBoundingClientRect()
-    return (box.width > 0 || box.height > 0) && box.bottom > top && box.top < bottom
-  })
-}
-
-// Every visible character swapped for a random glyph; whitespace stays, so the lines keep their shape.
-function noise(text) {
-  return text.replace(/\S/gu, () => GLYPHS[Math.floor(Math.random() * GLYPHS.length)])
-}
-
-function element(tag, className, text = '') {
-  const node = document.createElement(tag)
-  node.className = className
-  node.textContent = text
-  return node
-}
-
-// --- transition plumbing ---
-
-// Runs one transition: marks <html data-transition>, announces start and end, and clears both even if
-// the work throws. Hiding the tab mid-way fast-forwards it, so the swap never waits on a hidden tab.
-function run(kind, work) {
-  const transition = { fast: false, finishers: new Set() }
-  const html = document.documentElement
-  const onVisibility = () => {
-    if (document.hidden) finishNow()
-  }
-  current = transition
-  html.dataset.transition = kind
-  document.addEventListener('visibilitychange', onVisibility)
-  const done = (async () => {
-    await null // the work starts after the start event below, which already sees transition.done
-    try {
-      await work()
-    } finally {
-      document.removeEventListener('visibilitychange', onVisibility)
-      if (current === transition) {
-        current = null
-        delete html.dataset.transition
-      }
-      emit(kind, 'end')
-    }
-  })()
-  transition.done = done.catch(() => {})
-  emit(kind, 'start') // a listener that calls finishNow() here gets a real promise, and a fast transition
-  return done
-}
-
-// The running transition and all its remaining phases run at zero duration. It still awaits the fetch
-// and still swaps. Resolves when it has ended, and never rejects.
-function finishNow() {
-  if (!current) return Promise.resolve()
-  current.fast = true
-  current.finishers.forEach(finish => finish())
-  return current.done
-}
-
-// Resolves when the timeline completes, or after maxMs if it never ticks (a hidden tab), and always
-// leaves it at its end state. Under finishNow it ends at once.
-function play(timeline, maxMs) {
-  const owner = current
-  return new Promise(resolve => {
-    let ended = false
-    const finish = () => {
-      if (ended) return
-      ended = true
-      clearTimeout(timer)
-      owner?.finishers.delete(finish)
-      if (timeline.progress() < 1) timeline.progress(1)
-      resolve()
-    }
-    const timer = setTimeout(finish, maxMs)
-    timeline.eventCallback('onComplete', finish)
-    if (owner?.fast) finish()
-    else owner?.finishers.add(finish)
-  })
-}
-
-function emit(kind, phase, extra) {
-  document.dispatchEvent(new CustomEvent('egt:transition', { detail: { kind, phase, ...extra } }))
 }
