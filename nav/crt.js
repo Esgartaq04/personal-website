@@ -23,6 +23,7 @@ const COLLAPSE_MS = 380 // ms from the full screen to the dot...
 const COLLAPSE_LINE = 0.65 // ...with a line by this fraction of it
 const AFTERGLOW_MS = 600 // ms the dot takes to fade and shrink away
 const POWER_OFF_DEADLINE = 1500 // ms after which a power-off navigates whatever the animation is doing
+const UNCOVER_MS = 3000 // ms after navigating that a page still here gets its screen back
 const FLICKER = [0.55, 1, 0.7, 1, 0.85] // the terminal's opacity at each of the settle's five steps
 
 // Runs once, as nav.js loads. The head script sets html.power-on, whose CSS cover is black from first
@@ -70,10 +71,12 @@ export function powerOn() {
 // at once when there is nothing to animate, else as the afterglow ends, or at POWER_OFF_DEADLINE
 // whatever the animation is doing.
 export async function powerOffTo(url) {
+  let crt = null
   let gone = false
   const go = () => {
     if (gone) return
     gone = true
+    if (crt) uncoverIfStillHere(crt)
     location.href = url
   }
   if (kindFor('root') === 'instant') {
@@ -81,7 +84,6 @@ export async function powerOffTo(url) {
     return
   }
   const deadline = setTimeout(go, POWER_OFF_DEADLINE)
-  let crt = null
   try {
     await run('power', async () => {
       try {
@@ -108,16 +110,26 @@ export async function powerOffTo(url) {
     clearTimeout(deadline)
     go()
   }
-  // The black stays up until the next page paints. Should this page come back instead (Back while that
-  // one loads, or the back/forward cache), it is uncovered, and no later page powers on for it.
+}
+
+// After a power-off navigates, the black stays up until the next page paints over it. Should this page
+// stay or come back instead (Back while the next one loads, the back/forward cache, or Stop or Esc,
+// which fire nothing here), it is uncovered: on pageshow, popstate, a key or click, or after UNCOVER_MS,
+// whichever comes first, which drops the rest. No later page powers on for the one that never came.
+function uncoverIfStillHere(crt) {
+  const done = new AbortController()
   const uncover = () => {
-    crt?.remove()
+    done.abort()
+    crt.remove()
     try {
       sessionStorage.removeItem('egt.poweroff')
     } catch {}
   }
-  window.addEventListener('pageshow', uncover, { once: true })
-  window.addEventListener('popstate', uncover, { once: true })
+  const timer = setTimeout(uncover, UNCOVER_MS)
+  done.signal.addEventListener('abort', () => clearTimeout(timer))
+  for (const type of ['pageshow', 'popstate', 'keydown', 'pointerdown']) {
+    window.addEventListener(type, uncover, { signal: done.signal })
+  }
 }
 
 // #crt: black over the whole page except for .crt-window in its middle (the black is the window's
