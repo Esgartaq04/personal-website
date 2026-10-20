@@ -178,15 +178,15 @@ The site degrades as a visitor progresses. `hunt/corruption.js` holds the stage 
 |---|---|---|
 | 0 | no fragments | Nothing. No classes, no canvas, no timers, no extra requests |
 | 1 | 1 fragment | Faint background code rain; the brand line flickers now and then |
-| 2 | 2 | Page transitions glitch: RGB split, tearing, `ACCESS GRANTED` lands corrupted |
+| 2 | 2 | Nav transitions glitch: RGB split, tearing, `ACCESS GRANTED` lands corrupted |
 | 3 | 3 | Denser rain, heavier scanlines, brief bursts every 20–45 s (panel split, headings decode) |
 | 4 | 4 | Nav labels and the home typewriter glitch; hunt toasts add `[!] integrity check failed` |
-| 5 | all 5 | Red rain columns, a kernel-panic line in transitions, a `> /root awaits_` link |
-| root | `/root` unlocked | Calmer: slow steady rain, `(root@egt)-[~]#` brand, `ROOT ACCESS` transitions |
+| 5 | all 5 | Red rain columns, a kernel-panic line in the transition output, a `> /root awaits_` link |
+| root | `/root` unlocked | Calmer: slow steady rain, `(root@egt)-[~]#` brand, transitions use the `(root@egt)-[~]#` prompt and `ROOT ACCESS` |
 
 Rules that keep it safe to ship on a portfolio:
 
-- Everything hangs off `<html>` classes (`fx-1` … `fx-5`, `fx-root`) and elements outside `<main>`, so `script.js` is untouched and the SPA swap never orphans anything. Text glitches always restore the exact original.
+- Everything hangs off `<html>` classes (`fx-1` … `fx-5`, `fx-root`) and elements outside `<main>`, so `nav.js`'s `<main>` swap never orphans anything. Transitions are hooked through the `egt:transition` event and `html[data-transition]`. Text glitches always restore the exact original.
 - Content stays readable: the rain is behind `.terminal-container`, and bursts last under half a second.
 - `prefers-reduced-motion` gets a still rain frame and no bursts or tearing.
 - `fsck` in the `/root` shell turns it all off (`fx: 'off'` in `egt.eggs`); `corrupt` turns it back on.

@@ -1,6 +1,7 @@
 // Corruption effects: the site degrades as the hunt progresses (rules in hunt/corruption.js).
-// Everything here lives outside <main> (classes on <html>, a canvas and a link on <body>, observers on
-// the transition overlay), so script.js's <main> swap never orphans it and script.js is untouched.
+// Everything here lives outside <main> (classes on <html>, a canvas and a link on <body>, a listener on
+// document), so nav.js's <main> swap never orphans it. Transitions are hooked through the egt:transition
+// event and html[data-transition].
 // Stage 0 creates nothing and starts nothing.
 
 import {
@@ -19,8 +20,6 @@ import { createRain, glyphAt, stepRain } from './hunt/rain.js'
 
 const CELL = 16 // px per rain column and row
 const TRAIL = 14 // rows in each falling streak
-const ACCESS_TEXT = 'ACCESS GRANTED'
-const ROOT_TEXT = 'ROOT ACCESS'
 const ROOT_BRAND = '(root@egt)-[~]#'
 
 let store = null
@@ -30,7 +29,6 @@ let config = null
 let reducedMotion = false
 let rain = null
 let burstTimer = null
-let accessObserver = null
 
 export function initFx(progressStore, { rooted: startRooted = false } = {}) {
   if (store) return
@@ -46,6 +44,7 @@ export function initFx(progressStore, { rooted: startRooted = false } = {}) {
   }
   // The shell's fsck / corrupt commands change the setting, then fire this.
   document.addEventListener('egt:fx', () => refreshFx())
+  document.addEventListener('egt:transition', onTransition)
   refreshFx(true)
 }
 
@@ -89,7 +88,6 @@ export function refreshFx(force = false) {
   html.classList.add(...classesFor(stage))
   updateRain()
   updateBursts()
-  updateOverlay()
   updateBreach()
   updateBrand()
 }
@@ -265,40 +263,20 @@ const BURSTS = {
   },
 }
 
-// --- transition overlay ---
-// script.js shows #access-msg by setting style.display and never touches its text, so swapping the
-// text here cannot fight it. The tearing and RGB split are pure CSS on the fx-* classes.
+// --- page transitions ---
+// nav.js announces egt:transition and marks <html data-transition> while a transition runs. The tearing
+// and RGB split are pure CSS on the fx-* classes; the one thing script does is corrupt the access line.
 
-function updateOverlay() {
-  const message = document.getElementById('access-msg')
-  if (!message) return
-  if (stage === 0) {
-    if (accessObserver) {
-      accessObserver.disconnect()
-      accessObserver = null
-      message.textContent = ACCESS_TEXT
-    }
-    return
-  }
-  if (!accessObserver) {
-    accessObserver = new MutationObserver(() => {
-      if (message.style.display === 'block') onAccessShown(message)
-    })
-    accessObserver.observe(message, { attributes: true, attributeFilter: ['style'] })
-  }
-}
-
-function onAccessShown(message) {
-  const real = stage === ROOT ? ROOT_TEXT : ACCESS_TEXT
-  const chance = config ? config.transition.corrupt : 0
-  if (!reducedMotion && Math.random() < chance) {
-    message.textContent = corruptText(real, 0.45, Math.random)
-    setTimeout(() => {
-      message.textContent = real
-    }, 220)
-  } else {
-    message.textContent = real
-  }
+function onTransition(event) {
+  const { phase, target } = event.detail
+  if (phase !== 'access' || !target || !config || reducedMotion) return
+  if (Math.random() >= config.transition.corrupt) return
+  // nav.js has already put the real text in; show it corrupted for a moment, then put it back.
+  const real = target.textContent
+  target.textContent = corruptText(real, 0.45, Math.random)
+  setTimeout(() => {
+    target.textContent = real
+  }, 220)
 }
 
 // --- breach prompt and rooted brand ---
