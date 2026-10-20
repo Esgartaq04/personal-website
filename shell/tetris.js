@@ -2,6 +2,8 @@
 // startTetris drives them through the shell's takeover host, the same way Snake does.
 // Gravity runs on setInterval, not requestAnimationFrame, so the game never depends on the page compositing.
 
+import { clearTimer as defaultClearTimer, directionKey, setTimer as defaultSetTimer } from './takeover.js'
+
 export const WIDTH = 10
 export const HEIGHT = 20
 
@@ -177,21 +179,18 @@ export function render(game, high = 0, paused = false) {
 
 export function keyToAction(key) {
   const k = typeof key === 'string' ? key.toLowerCase() : ''
-  if (k === 'arrowleft' || k === 'a') return 'left'
-  if (k === 'arrowright' || k === 'd') return 'right'
-  if (k === 'arrowup' || k === 'w' || k === 'x') return 'rotate'
-  if (k === 'arrowdown' || k === 's') return 'down'
+  if (k === 'x') return 'rotate'
   if (k === ' ') return 'drop'
   if (k === 'p') return 'pause'
-  if (k === 'q' || k === 'escape') return 'quit'
-  return null
+  const action = directionKey(key)
+  return action === 'up' ? 'rotate' : action
 }
 
 export function startTetris(host, store, options = {}) {
   const {
     rng = Math.random,
-    setTimer = (fn, ms) => setInterval(fn, ms),
-    clearTimer = id => clearInterval(id),
+    setTimer = defaultSetTimer,
+    clearTimer = defaultClearTimer,
   } = options
   const high = store ? store.get().tetrisHigh : 0
   let game = createGame(rng)

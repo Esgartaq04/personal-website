@@ -1,4 +1,5 @@
 import { test, assert, assertEqual, assertDeepEqual } from './harness.js'
+import { fakeHost, fakeTimers } from './fakes.js'
 import { createStore } from '../hunt/state.js'
 import { createGame, keyToAction, placeFood, render, snakeCommand, startSnake, step, turn } from '../shell/snake.js'
 
@@ -16,31 +17,6 @@ function game(overrides = {}) {
     over: false,
     ...overrides,
   }
-}
-
-function fakeHost() {
-  const host = { frames: [], finished: null, finishCount: 0, keyHandler: null }
-  host.draw = text => host.frames.push(text)
-  host.onKey = handler => {
-    host.keyHandler = handler
-  }
-  host.finish = lines => {
-    host.finished = lines
-    host.finishCount++
-  }
-  return host
-}
-
-function fakeTimers() {
-  const timers = { callback: null, cleared: false }
-  timers.setTimer = fn => {
-    timers.callback = fn
-    return 1
-  }
-  timers.clearTimer = () => {
-    timers.cleared = true
-  }
-  return timers
 }
 
 test('snake: createGame centers a three-cell snake heading right', () => {

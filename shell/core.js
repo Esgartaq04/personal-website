@@ -4,8 +4,8 @@
 //
 // Shell results also use: exit, takeover, navigate, download, fx. A takeover is handed a host
 // { draw(text), onKey(down, up?), finish(lines) } and owns the screen until it calls finish. down gets
-// each key press; up, if given, each key release (for games that track held keys). That is the whole
-// interface a game needs.
+// each key press; up, if given, each key release (for games that track held keys), and null when the
+// shell loses focus and every key should count as released. That is the whole interface a game needs.
 
 import {
   complete as completeLine,
@@ -25,13 +25,12 @@ export function createContext({ tree, home = HOME, ...options }) {
 }
 
 // Runs files by path, like ./tetris: only names with a slash, and only files marked exec, which run
-// the registered command they name. Anything else gets bash's answer, or undefined for not found.
+// the registered command they name. Any other path gets bash's answer.
 function resolveCommand(name, ctx) {
   if (!name.includes('/')) return undefined
   const node = getNode(ctx.tree, resolvePath(ctx.cwd, name, ctx.home))
-  if (!node) return undefined
-  if (node.exec) return ctx.registry.get(node.exec)
-  const error = node.type === 'dir' ? 'Is a directory' : 'Permission denied'
+  if (node?.exec) return ctx.registry.get(node.exec)
+  const error = !node ? 'No such file or directory' : node.type === 'dir' ? 'Is a directory' : 'Permission denied'
   return { desc: '', hidden: true, run: () => ({ out: [`bash: ${name}: ${error}`] }) }
 }
 
@@ -53,10 +52,12 @@ export function registerBuiltins(ctx) {
     run: (args, c) => ({ out: c.history.map((entry, i) => `${String(i + 1).padStart(4)}  ${entry}`) }),
   })
   register(ctx, 'exit', { desc: 'log out', usage: 'exit', run: () => ({ out: ['logout'], exit: true }) })
+  // ctx.sudo, if set, answers first; returning undefined falls through to the joke. shell/arcade.js
+  // uses it for `sudo 42`.
   register(ctx, 'sudo', {
     desc: '',
     hidden: true,
-    run: () => ({ out: ['visitor is not in the sudoers file. This incident will be reported.'] }),
+    run: (args, c) => c.sudo?.(args, c) ?? { out: ['visitor is not in the sudoers file. This incident will be reported.'] },
   })
   register(ctx, 'rm', { desc: '', hidden: true, run: rm })
 }

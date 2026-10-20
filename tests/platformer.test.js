@@ -1,4 +1,5 @@
 import { test, assert, assertEqual, assertDeepEqual } from './harness.js'
+import { fakeHost, fakeTimers } from './fakes.js'
 import { createStore } from '../hunt/state.js'
 import { LEVELS, createGame, keyToAction, parseLevel, render, startPlatformer, step, totalCoins } from '../shell/platformer.js'
 
@@ -8,31 +9,6 @@ const OPEN = ['          ', '          ', '          ', '          ', ' @       
 function run(game, input, ticks) {
   for (let i = 0; i < ticks; i++) game = step(game, input)
   return game
-}
-
-function fakeHost() {
-  const host = { frames: [], finished: null, down: null, up: null }
-  host.draw = text => host.frames.push(text)
-  host.onKey = (down, up) => {
-    host.down = down
-    host.up = up
-  }
-  host.finish = lines => {
-    host.finished = lines
-  }
-  return host
-}
-
-function fakeTimers() {
-  const timers = { callback: null, cleared: 0 }
-  timers.setTimer = fn => {
-    timers.callback = fn
-    return 1
-  }
-  timers.clearTimer = () => {
-    timers.cleared++
-  }
-  return timers
 }
 
 test('platformer: parseLevel finds the start, coins, and enemies, and pads rows', () => {
@@ -85,6 +61,22 @@ test('platformer: one-way platforms let you up through and hold you on top', () 
   assertEqual(game.player.y, 1) // standing on the platform in row 2
 })
 
+test('platformer: a jump that peaks inside a platform lands on top of it', () => {
+  // The jump rises four cells, which is exactly the platform's row.
+  let game = createGame([['      ', ' ==== ', '      ', '      ', '      ', ' @    ', '######']])
+  game = step(game, { jump: true })
+  for (let i = 0; i < 20; i++) game = step(game, {})
+  assertEqual(game.player.y, 0)
+})
+
+test('platformer: stepping sideways into a platform puts you on top of it', () => {
+  let game = createGame([['      ', ' @==  ', '##    ']])
+  game = run(game, { right: true }, 1)
+  assertDeepEqual([game.player.x, game.player.y], [2, 0])
+  game = run(game, {}, 10)
+  assertEqual(game.player.y, 0)
+})
+
 test('platformer: spikes cost a life and restart the level', () => {
   let game = createGame([[' @^  F', '######']])
   game = step(game, { right: true })
@@ -108,12 +100,29 @@ test('platformer: losing the last life ends the game', () => {
   assertEqual(game.won, false)
 })
 
+test('platformer: coins from the attempt that ends the game do not count', () => {
+  const levels = [['@o^', '###']]
+  const lastLife = run({ ...createGame(levels), lives: 1 }, { right: true }, 2)
+  const earlierLife = run(createGame(levels), { right: true }, 2)
+  assertEqual(lastLife.over, true)
+  assertEqual(lastLife.levelCoins, 0)
+  assertEqual(earlierLife.levelCoins, 0)
+})
+
 test('platformer: landing on an enemy stomps it', () => {
   // Walls on both sides keep the enemy in place under the player.
   let game = createGame([[' @ ', '   ', '   ', '#E#', '###']])
   game = run(game, {}, 6)
   assertEqual(game.lives, 3)
   assertEqual(game.enemies.length, 0)
+})
+
+test('platformer: falling onto a cell an enemy steps into stomps it', () => {
+  // Mid-fall, the player drops from row 3 to row 4 on the same (even) tick the enemy steps under it.
+  let game = createGame([['  @  ', '     ', '     ', '     ', '   E#', '#####']])
+  game = { ...game, tick: 1, player: { ...game.player, y: 3, vy: 1, acc: 0 } }
+  game = step(game, {})
+  assertEqual(game.lives, 3)
 })
 
 test('platformer: walking into an enemy costs a life', () => {
@@ -186,21 +195,32 @@ test('platformer: held keys keep walking until released', () => {
   const host = fakeHost()
   const timers = fakeTimers()
   startPlatformer(host, null, { ...timers, levels: [[' @        F', '###########']] })
-  host.down('ArrowRight')
+  host.keyHandler('ArrowRight')
   timers.callback()
   timers.callback()
   assert(host.frames.at(-1).includes('|   @'))
-  host.up('ArrowRight')
+  host.keyUpHandler('ArrowRight')
   timers.callback()
   assert(host.frames.at(-1).includes('|   @'))
+})
+
+test('platformer: losing focus releases held keys', () => {
+  const host = fakeHost()
+  const timers = fakeTimers()
+  startPlatformer(host, null, { ...timers, levels: [[' @        F', '###########']] })
+  host.keyHandler('ArrowRight')
+  timers.callback()
+  host.keyUpHandler(null)
+  timers.callback()
+  assert(host.frames.at(-1).includes('|  @'))
 })
 
 test('platformer: a tap between ticks still moves once', () => {
   const host = fakeHost()
   const timers = fakeTimers()
   startPlatformer(host, null, { ...timers, levels: [[' @        F', '###########']] })
-  host.down('d')
-  host.up('d')
+  host.keyHandler('d')
+  host.keyUpHandler('d')
   timers.callback()
   timers.callback()
   assert(host.frames.at(-1).includes('|  @'))
@@ -211,7 +231,7 @@ test('platformer: winning saves the best coin count', () => {
   const host = fakeHost()
   const timers = fakeTimers()
   startPlatformer(host, store, { ...timers, levels: [[' @o F', '#####']] })
-  host.down('ArrowRight')
+  host.keyHandler('ArrowRight')
   for (let i = 0; i < 3; i++) timers.callback()
   assertDeepEqual(host.finished, ['you win. coins 1/1, best 1/1.'])
   assertEqual(store.get().platformerBest, 1)

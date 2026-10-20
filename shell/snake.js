@@ -1,6 +1,8 @@
 // Snake for /root. The rules are pure; startSnake drives them through the shell's takeover host.
 // Ticks run on setInterval, not requestAnimationFrame, so the game never depends on the page compositing.
 
+import { clearTimer as defaultClearTimer, directionKey, setTimer as defaultSetTimer } from './takeover.js'
+
 export const DIRECTIONS = {
   up: { x: 0, y: -1 },
   down: { x: 0, y: 1 },
@@ -85,21 +87,13 @@ export function render(game, high = 0) {
   return rows.join('\n')
 }
 
-export function keyToAction(key) {
-  const k = typeof key === 'string' ? key.toLowerCase() : ''
-  if (k === 'arrowup' || k === 'w') return 'up'
-  if (k === 'arrowdown' || k === 's') return 'down'
-  if (k === 'arrowleft' || k === 'a') return 'left'
-  if (k === 'arrowright' || k === 'd') return 'right'
-  if (k === 'q' || k === 'escape') return 'quit'
-  return null
-}
+export const keyToAction = directionKey
 
 export function startSnake(host, store, options = {}) {
   const {
     rng = Math.random,
-    setTimer = (fn, ms) => setInterval(fn, ms),
-    clearTimer = id => clearInterval(id),
+    setTimer = defaultSetTimer,
+    clearTimer = defaultClearTimer,
     width = WIDTH,
     height = HEIGHT,
   } = options

@@ -4,6 +4,8 @@
 // while a key is held instead of stuttering with the keyboard's auto-repeat.
 // Ticks run on setInterval, not requestAnimationFrame.
 
+import { clearTimer as defaultClearTimer, directionKey, setTimer as defaultSetTimer } from './takeover.js'
+
 export const VIEW_WIDTH = 60
 export const TICK_MS = 80
 export const LIVES = 3
@@ -129,7 +131,7 @@ function say(game, message) {
 
 function die(game, why) {
   const lives = game.lives - 1
-  if (lives <= 0) return { ...game, lives: 0, over: true, message: why }
+  if (lives <= 0) return { ...game, lives: 0, levelCoins: 0, over: true, message: why }
   return say(loadLevel({ ...game, lives }, game.index), `${why} lives left: ${lives}`)
 }
 
@@ -143,6 +145,14 @@ function movePlayer(level, player, input) {
   let { x, y, vy, acc } = player
   const dx = (input.right ? 1 : 0) - (input.left ? 1 : 0)
   if (dx !== 0 && x + dx >= 0 && x + dx < level.width && tileAt(level, x + dx, y) !== SOLID) x += dx
+
+  // Nobody rests inside a platform: only a rising jump passes through one. Peaking inside it, or
+  // stepping into it sideways, puts the player on top, the same as landing there.
+  if (vy >= 0 && tileAt(level, x, y) === '=' && tileAt(level, x, y - 1) !== SOLID) {
+    y--
+    vy = 0
+    acc = 0
+  }
 
   const grounded = supports(level, x, y + 1)
   if (input.jump && grounded) vy = -JUMP
@@ -217,7 +227,7 @@ export function step(game, input = {}) {
   // die() reloads the level, so a lost life means this tick is over.
   next = meetEnemies(next, fromY)
   if (next.lives !== game.lives) return next
-  next = meetEnemies({ ...next, enemies: moveEnemies(level, next.enemies, tick) }, y)
+  next = meetEnemies({ ...next, enemies: moveEnemies(level, next.enemies, tick) }, fromY)
   if (next.lives !== game.lives) return next
 
   if (next.coins.includes(key(x, y))) {
@@ -256,18 +266,16 @@ export function render(game, viewWidth = VIEW_WIDTH) {
 }
 
 export function keyToAction(key) {
-  const k = typeof key === 'string' ? key.toLowerCase() : ''
-  if (k === 'arrowleft' || k === 'a') return 'left'
-  if (k === 'arrowright' || k === 'd') return 'right'
-  if (k === 'arrowup' || k === 'w' || k === ' ') return 'jump'
-  if (k === 'q' || k === 'escape') return 'quit'
-  return null
+  if (key === ' ') return 'jump'
+  const action = directionKey(key)
+  if (action === 'up') return 'jump'
+  return action === 'down' ? null : action
 }
 
 export function startPlatformer(host, store, options = {}) {
   const {
-    setTimer = (fn, ms) => setInterval(fn, ms),
-    clearTimer = id => clearInterval(id),
+    setTimer = defaultSetTimer,
+    clearTimer = defaultClearTimer,
     levels = LEVELS,
   } = options
   const best = store ? store.get().platformerBest : 0
@@ -301,6 +309,10 @@ export function startPlatformer(host, store, options = {}) {
       }
     },
     key => {
+      if (key === null) {
+        for (const name of Object.keys(held)) held[name] = false
+        return
+      }
       const action = keyToAction(key)
       if (action && action !== 'quit') held[action] = false
     },
