@@ -1,6 +1,8 @@
 // The rules behind the terminal page transitions: what the typed command and the output lines say,
 // how long each step takes, and which effect plays when. Pure functions and constants with no DOM
-// access, so they run under Node; nav.js applies them to the page. Tune the timings here.
+// access, so they run under Node; nav.js applies them to the page. The command transition's timings,
+// the shared wipe and the power-on deadline are tuned here; the decrypt's and the power cycle's own
+// timings are in nav/decrypt.js and nav/crt.js.
 
 import { ROOT, configFor } from '../hunt/corruption.js'
 
@@ -99,4 +101,11 @@ export function transitionFor(trigger, { reducedMotion, hidden, animate }) {
 export function isPlainText(el) {
   const children = Array.from(el.childNodes)
   return children.length > 0 && children.every(n => n.nodeType === 3) && el.textContent.trim() !== ''
+}
+
+// True for mixed markup: an element with visible text of its own beside child elements or comments,
+// like home's `> Subject: <span>…</span>`. A scramble would flatten it, so it wipes in instead.
+export function isMixedText(el) {
+  const own = Array.from(el.childNodes).some(n => n.nodeType === 3 && n.textContent.trim() !== '')
+  return own && !isPlainText(el)
 }

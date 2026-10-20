@@ -39,6 +39,8 @@ const FETCH_DEADLINE = 8000 // ms before a stalled fetch counts as failed
 let afterSwap = () => {}
 // The newest navigation's request. Anything older never swaps, pushes or falls back over it.
 let latest = null
+// The page the newest navigation leads to, so a second click on it (a double-click) doesn't restart it.
+let heading = null
 let prompt = null
 
 // The boot, or the power-on after a power-off: only when this page's head script asked for one.
@@ -47,7 +49,10 @@ powerOn()
 export function initNavigation(options) {
   afterSwap = options.afterSwap
   history.replaceState({ page: pageOf(location.pathname) }, '')
+  heading = pageOf(location.pathname)
   document.addEventListener('click', async event => {
+    // Modified and non-primary clicks are the browser's (a new tab or window), on every link here.
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
     // The stage 5 breach link (fx.js) leads to /root, so it power-cycles like every other way in.
     const breach = event.target.closest?.('a#fx-breach')
     if (breach) {
@@ -59,9 +64,20 @@ export function initNavigation(options) {
     if (!link) return
     event.preventDefault()
     const page = link.getAttribute('href')
-    // A click mid-transition fast-forwards it; the loop also catches a transition another click started.
-    while (current) await finishNow()
-    if (page !== pageOf(location.pathname)) navigate(page, 'nav')
+    // Already there, or already on the way (a double-click): a click mid-transition fast-forwards it, and
+    // that's all.
+    if (page === (current ? heading : pageOf(location.pathname))) {
+      while (current) await finishNow()
+      return
+    }
+    // Anywhere else, the fetch starts at once and this click becomes the newest, like a Back below: a
+    // transition still running is fast-forwarded without swapping, pushing or falling back over it, and
+    // the loop also catches one another click started. The newest click is the one that navigates.
+    const request = load(page)
+    latest = request
+    heading = page
+    while (current && request === latest) await finishNow()
+    if (request === latest) navigate(page, 'nav', request)
   })
   // Back/Forward have already moved the URL; this brings <main> in line with it. The request becomes the
   // newest at once, so a transition still running sees it was overtaken and won't push over it.
@@ -69,8 +85,16 @@ export function initNavigation(options) {
     const page = pageOf(location.pathname)
     const request = load(page)
     latest = request
+    heading = page
     while (current && request === latest) await finishNow()
     if (request === latest) navigate(page, 'history', request)
+  })
+  // A fallback's full load that failed, then Back: the back/forward cache brings this page back as it was
+  // left, with the error line and the failed page's nav highlight still up.
+  window.addEventListener('pageshow', event => {
+    if (!event.persisted || current) return
+    if (prompt) hidePrompt()
+    updateActiveNav()
   })
 }
 
@@ -143,7 +167,9 @@ function swap(page, result, push) {
   main.innerHTML = result.main.innerHTML
   main.scrollTop = 0
   document.title = result.title
-  if (push) history.pushState({ page }, '', page)
+  // A click back to the page the URL already shows (one that overtook a command headed elsewhere) adds
+  // no second entry for it.
+  if (push && page !== pageOf(location.pathname)) history.pushState({ page }, '', page)
   updateActiveNav(page)
 }
 
@@ -153,13 +179,14 @@ async function command(page, request) {
   const { root, cmd, cursor } = showPrompt()
   await type(cmd, commandFor(page))
   await pause(ENTER_PAUSE)
-  cursor.remove()
-  updateActiveNav(page)
+  // A fetch still pending keeps the cursor waiting on the command line until it settles.
   const result = await request
+  cursor.remove()
   if (request !== latest) {
-    hidePrompt() // a Back or Forward overtook this one while it waited, and swaps in its place
+    hidePrompt() // a newer click, or a Back or Forward, overtook this one and swaps in its place
     return
   }
+  updateActiveNav(page)
   if (!result.ok) {
     await print(root, [{ text: errorLine(page, result.reason), kind: 'alert' }])
     await pause(FAIL_PAUSE)
@@ -171,7 +198,7 @@ async function command(page, request) {
   const main = document.querySelector('main')
   await scrollOut(main)
   // Overtaken during the output, it still swaps (the old page has scrolled away) but leaves history to
-  // the Back/Forward, whose own swap follows at once.
+  // the newer click or Back/Forward, whose own swap follows at once.
   swap(page, result, request === latest)
   await reveal(main)
   hidePrompt()

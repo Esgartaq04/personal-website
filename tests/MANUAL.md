@@ -64,6 +64,10 @@ Seed progress quickly from the console: `localStorage.setItem('egt.eggs', JSON.s
 - [ ] Back to `/about`: the DOM still contains the `[recovered fragment]` comment, and project cards, links, and the contact form are intact and work.
 - [ ] Press Back three times quickly. You land on the right page with no doubled or scrambled text left over.
 - [ ] Back to the very first page of the session works; there's no reload loop.
+- [ ] Press Back while a nav click's `cd /<page>` is still typing. The decrypt takes over and you land on the previous page, with no prompt or output lines left over.
+- [ ] Click a nav link for another page while a Back decrypt is running. The decrypt finishes instantly, then one `cd /<page>` transition runs to the clicked page. Clicking the page Back is going to just finishes the decrypt.
+- [ ] Devtools offline, then click `/about` and `/projects` within half a second. The full page load that follows goes to `/projects`, not `/about`.
+- [ ] Ctrl-click (Cmd-click on a Mac) a nav link. The page opens in a new tab, and this tab doesn't transition.
 - [ ] New tab on any page: the screen powers on from a dot within about 0.8s; a key press skips it. Reload: no boot.
 - [ ] Block `cdnjs.cloudflare.com` and open a fresh tab. The page is visible within about 1.2s and is never stuck black.
 - [ ] At stage 5, click `> /root awaits_`. The site collapses to a line, then a dot that fades, and `/root` powers on.

@@ -6,7 +6,7 @@
 
 import { corruptText } from '../hunt/corruption.js'
 import { GLYPHS } from '../hunt/rain.js'
-import { DECRYPT_STATUS, WIPE_MS, isPlainText, revealPlan } from './rules.js'
+import { DECRYPT_STATUS, WIPE_MS, isMixedText, isPlainText, revealPlan } from './rules.js'
 import { CLIPPED, WIPE, element, keepStyles, unclip } from './dom.js'
 import { play } from './runner.js'
 
@@ -62,16 +62,16 @@ export async function noiseOut(main) {
 }
 
 // The new page's on-screen lines start as corrupted text and decrypt into the real thing top-down.
-// Whatever holds no text at all (images, inputs) wipes in at its place in the reading order. Every line
+// Whatever holds no text at all (images, inputs), and mixed markup's own text (isMixedText), wipes in at
+// its place in the reading order; a line inside mixed markup still decrypts as its wipe runs. Every line
 // gets its exact text back however this ends, before afterSwap() sees the page.
 export async function decryptIn(main) {
   const texts = textLeaves(main)
   const order = [] // in reading order: { el, text: true } decrypts, { el, text: false } wipes
   onScreen(main, [...main.querySelectorAll('*')]).forEach(el => {
     if (texts.includes(el)) order.push({ el, text: true })
-    else if (!texts.some(leaf => el.contains(leaf)) && !order.some(step => step.el.contains(el))) {
-      order.push({ el, text: false })
-    }
+    else if (order.some(step => step.el.contains(el))) return // inside a wipe already
+    else if (!texts.some(leaf => el.contains(leaf)) || isMixedText(el)) order.push({ el, text: false })
   })
   if (order.length === 0) return
   const leaves = take(order.filter(step => step.text).map(step => step.el))

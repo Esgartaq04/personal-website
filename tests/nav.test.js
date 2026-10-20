@@ -14,6 +14,7 @@ import {
   revealPlan,
   transitionFor,
   isPlainText,
+  isMixedText,
 } from '../nav/rules.js'
 
 // A repeating sequence, so tests can steer exactly what the rng returns.
@@ -116,4 +117,17 @@ test('nav: plain text means text-node children only, not empty', () => {
   assert(!isPlainText(el(text('a'), { nodeType: 8, textContent: '' }))) // an HTML comment, like about.html's fragment
   assert(!isPlainText(el(text('   '))))
   assert(!isPlainText(el()))
+})
+
+test('nav: mixed text means own visible text beside other nodes', () => {
+  const text = t => ({ nodeType: 3, textContent: t })
+  const el = (...childNodes) => ({ childNodes, textContent: childNodes.map(n => n.textContent ?? '').join('') })
+  const span = el(text('Esteban Garcia Taquez'))
+  span.nodeType = 1
+  assert(isMixedText(el(text('> Subject: '), span))) // home's subject line
+  assert(isMixedText(el(text('> '), { nodeType: 1, textContent: '' }))) // the prompt before the typewriter
+  assert(isMixedText(el(text('a'), { nodeType: 8, textContent: '' }))) // text beside an HTML comment
+  assert(!isMixedText(el(text('\n  '), span, text('\n')))) // only layout whitespace of its own
+  assert(!isMixedText(el(text('IDENTITY CONFIRMED.')))) // plain text decrypts instead
+  assert(!isMixedText(el()))
 })
