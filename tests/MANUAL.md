@@ -1,6 +1,6 @@
 # Manual checklist
 
-The DOM layer has no automated tests. Walk this list before merging anything that touches `nav.js`, `nav/`, `eggs.js`, `lock.js`, `shell.js`, `shell/`, `root.html`, `api/`, `lib/`, `middleware.js`, or the breadcrumbs.
+The DOM layer has no automated tests. Walk this list before merging anything that touches `script.js`, `nav.js`, `nav/`, `eggs.js`, `lock.js`, `shell.js`, `shell/`, `root.html`, `api/`, `lib/`, `middleware.js`, or the breadcrumbs.
 
 Serve with the API and middleware running: `vercel dev`, or `npm run serve` (see the README). `python -m http.server` serves the pages but not `/api`, so secret fragments and the unlock will not work there.
 
@@ -11,6 +11,7 @@ Reset between runs: `localStorage.removeItem('egt.eggs')` in the console, delete
 ## Hunt
 
 - [ ] On a fresh load of any page, the devtools console shows the `SYSTEM NOTICE` box telling you to press `` ctrl+` `` and type `hunt`, and no errors other than the known `/_vercel/speed-insights/script.js` 404.
+- [ ] The console shows no debug lines on any page load, only the `SYSTEM NOTICE` box and the known 404, and the EmailJS keys are never printed.
 - [ ] Before anything is found, no `[n/5]` appears next to the brand line, and there is no `.site-console` element in the page.
 - [ ] `hunt()` in devtools prints only `` > wrong console. press ctrl+` on the page. `` and changes nothing.
 - [ ] A plain backtick does nothing special anywhere. `` Ctrl+` `` drops the site console down with the input focused; `` Ctrl+` `` again or Esc closes it and returns focus.
@@ -69,8 +70,17 @@ Seed progress quickly from the console: `localStorage.setItem('egt.eggs', JSON.s
 - [ ] At stage 5, the `> /root awaits_` link is hidden while a nav transition's prompt is up, so it never strikes through the kernel-panic line.
 - [ ] `su root` with the right passphrase: the same power cycle into `/root` (`session restored`).
 - [ ] `exit` in the `/root` shell: the shell powers off and the home page powers on.
+- [ ] During a power-off into `/root` (e.g. after `su root`), press Esc (or the browser's Stop). Within 3s the page is back and is never left black.
 - [ ] Reduced motion: no boot, and `/root` entry and exit navigate instantly.
 - [ ] Open the site in a background tab (middle-click) and switch to it later. There's no boot stuck on screen.
+
+## Contact form
+
+Walk these on `/contact.html`. A real send emails the site owner through EmailJS, so don't let a walk reach EmailJS unless you are the owner and mean it. To walk a path without sending anything, replace the global in the console before you submit (the page calls `emailjs` at submit time, so the stub is the one used): `window.emailjs = { init() {}, sendForm: () => Promise.reject(new Error('stub')) }` for a failed send, or `sendForm: () => Promise.resolve()` for a successful one.
+
+- [ ] Contact form with a bad EmailJS service ID in `config.js` (owner only; restore `config.js` afterwards), or with the rejecting stub: no Pepe overlay, status reads `> TRANSMISSION FAILED. Try again.`, button reads `RETRY`. Submitting again clears the status first, and a later successful send puts the button back to `EXECUTE_SEND`.
+- [ ] Contact form with EmailJS answering OK (the owner's real config sends a real email; the resolving stub sends nothing): Pepe overlay that fades after about 3s, the form is cleared, the button reads `EXECUTE_SEND`, and status reads `> UPLOAD COMPLETE.`
+- [ ] Contact form with no `ENV` (serve a copy of the page without `config.js`) or with the EmailJS script blocked: submitting shows `> ERROR: mail relay offline.`, the button goes back to `EXECUTE_SEND`, no request goes to EmailJS, and no Pepe overlay appears.
 
 ## Shell
 

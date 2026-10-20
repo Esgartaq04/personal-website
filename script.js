@@ -33,28 +33,35 @@ function initPageScripts() {
     const newForm = contactForm.cloneNode(true)
     contactForm.parentNode.replaceChild(newForm, contactForm)
 
+    // The button's resting label, read once. Reading it per submit would pick up "RETRY" after a failed
+    // send and put that back as the "original" once a later send succeeds.
+    const idleLabel = newForm.querySelector('#submit-btn').textContent.trim()
+
     newForm.addEventListener('submit', function (event) {
       event.preventDefault() // STOP RELOAD
 
       const btn = document.getElementById('submit-btn')
-      const originalText = btn.innerText
+      const status = document.getElementById('status-msg')
+      status.innerText = ''
       btn.innerText = 'TRANSMITTING...'
 
-      // Check if ENV is valid before sending
-      if (typeof ENV === 'undefined') {
+      // Without the config (or the EmailJS script) there is nothing to send with. Say so, and don't touch emailjs.
+      if (typeof ENV === 'undefined' || typeof emailjs === 'undefined') {
+        status.innerText = '> ERROR: mail relay offline.'
+        btn.innerText = idleLabel
         return
       }
 
       emailjs.sendForm(ENV.EMAILJS_SERVICE_ID, ENV.EMAILJS_TEMPLATE_ID, this).then(
         () => {
-          showSuccessOverlay()
-          btn.innerText = originalText
+          btn.innerText = idleLabel
           newForm.reset()
-          document.getElementById('status-msg').innerText = '> UPLOAD COMPLETE.'
+          status.innerText = '> UPLOAD COMPLETE.'
+          // Last, so the form is already back to normal even if the overlay can't run (GSAP blocked).
+          showSuccessOverlay()
         },
         () => {
-          showSuccessOverlay() // Show pepe anyway for debugging
-          document.getElementById('status-msg').innerText = '> ERROR: Check Console.'
+          status.innerText = '> TRANSMISSION FAILED. Try again.'
           btn.innerText = 'RETRY'
         },
       )

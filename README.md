@@ -226,4 +226,4 @@ The project's framework preset is **Other** with no build command, so Vercel ser
 - [ ] **Home page role line.** `index.html` reads `Role: Software Engineer // AI & Financial Systems`. This wording was drafted, not taken from the resume — confirm or replace it.
 - [ ] **`assets/Resume-previous.pdf`.** An untracked local backup of the superseded resume. Decide whether to keep it locally, commit it, or delete it.
 - [ ] **Social links.** `contact.html` has a commented-out Twitter link and a `add better link later on` note.
-- [ ] **Console noise.** `script.js` logs six debug lines on every page load, including the EmailJS public key, which buries the hunt's console banner. Removing them is a separate change to `script.js`.
+- [x] **Console noise.** `script.js` used to log six debug lines on every page load, including the EmailJS public key, which buried the hunt's console banner. They are gone; `tests/MANUAL.md` checks that a page load stays quiet.
