@@ -9,3 +9,7 @@ build/dist/
 .DS_Store .vscode/
 real.html
 node_modules/
+
+# Local Claude Code state: agent worktrees and the preview launch config
+.claude/worktrees/
+.claude/launch.json
