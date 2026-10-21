@@ -8,7 +8,7 @@ Vanilla HTML, CSS, and JavaScript — no build step and no framework. Open a fil
 
 | Piece | Used for |
 |---|---|
-| [GSAP](https://gsap.com/) (CDN) | Page-transition animations |
+| [GSAP](https://gsap.com/) 3.15 (CDN) with ScrambleText and CustomEase | Page transitions |
 | [EmailJS](https://www.emailjs.com/) (CDN) | Contact form delivery, client-side |
 | Google Fonts — Fira Code | Monospace type |
 | Vercel | Hosting, Speed Insights, Functions (`api/`), Routing Middleware |
@@ -22,7 +22,13 @@ about.html        /about      — bio and capabilities
 experience.html   /experience — employment, leadership, education
 projects.html     /projects   — project cards
 contact.html      /contact    — resume download, contact form, socials
-script.js                     — navigation, typewriter, form handling
+script.js                     — EmailJS init, typewriter, form handling (module)
+nav.js                        — navigation: nav clicks, fetch, <main> swap, history, the command transition
+nav/rules.js                  — transition rules: command text, status line, timings (pure, unit-tested)
+nav/runner.js                 — transition runner: run, fast-forward, timer fallbacks (DOM)
+nav/decrypt.js                — the Back/Forward decrypt's phases (DOM)
+nav/crt.js                    — the CRT power cycle: the boot, and entering or leaving /root (DOM)
+nav/dom.js                    — DOM helpers the transitions share
 style.css                     — all styling; CSS variables at :root
 config.ex.js                  — EmailJS config template
 config.js                     — EmailJS config, actually loaded
@@ -101,7 +107,9 @@ These three values are client-side by nature — they ship to every visitor's br
 
 ## How navigation works
 
-Nav clicks do **not** cause a full page load. `script.js` intercepts any `a.nav-link` click, plays the "hacking" overlay, `fetch`es the target page, and swaps in only its `<main>` innerHTML, then updates `document.title` and pushes history state.
+Nav clicks do **not** cause a full page load. `nav.js` intercepts any `a.nav-link` click, `fetch`es the target page, and plays the change as a typed terminal command (`cd /about`) whose `GET` line shows the real response size and fetch time. It then swaps in only the fetched `<main>` innerHTML, updates `document.title`, and pushes history state. Back/Forward decrypt the page in place instead of reloading: the page for the new URL is fetched the same way, the old text turns to noise, the new text decrypts into place, and ` :: access granted` flashes by the brand. Only elements whose children are all text are ever rewritten, and each gets its exact text back, so markup is never touched. Reduced motion, a hidden tab, and a missing GSAP (or one of its plugins) swap instantly instead. A failed fetch, or one with no response within 8s, prints a red error line, then falls back to a full page load; on Back/Forward it simply reloads.
+
+Entering or leaving `/root` power-cycles the screen like an old CRT. The breach link, `su root` in the site console, and the shell's `exit` (or `open`) collapse the page into a line, then a dot whose afterglow fades, and only then navigate; the page they lead to powers on from a dot. The first page in each tab boots the same way, once (the flag is in `sessionStorage`): a reload doesn't replay it, and any key or click skips it. A tiny inline script in each page's `<head>` decides before first paint whether the screen powers on, and sets a black CSS cover that `nav/crt.js` takes over from. The cover clears itself after 1.2s whatever happens, so a blocked or broken script never leaves the page black, and a power-off navigates after 1.5s even if its animation never runs. Reduced motion skips the boot and makes `/root` entry and exit instant.
 
 Two rules follow from this, and breaking either fails quietly rather than loudly:
 
@@ -113,8 +121,8 @@ Adding a page therefore means: create the file with content inside `<main>`, and
 ### Other gotchas
 
 - `body` has `overflow: hidden`; `main` scrolls internally. Long pages scroll within the content pane, not the window.
-- The animated swap runs inside a GSAP `onComplete`, so it depends on `requestAnimationFrame`. In environments that do not composite frames (headless capture, a hidden tab), the transition never completes and content will not swap. This is not a bug in normal browser use.
-- `script.js` re-runs `initPageScripts()` after every swap and clones the contact form to drop stale listeners.
+- `nav.js` re-runs `script.js`'s `initPageScripts()` after every swap, which clones the contact form to drop stale listeners.
+- The inline power-on script is copied into the `<head>` of all six pages, `root.html` included: with no build step it can't be shared, and it must run before first paint. Change one copy, change them all.
 
 ## Easter eggs
 
@@ -177,15 +185,15 @@ The site degrades as a visitor progresses. `hunt/corruption.js` holds the stage 
 |---|---|---|
 | 0 | no fragments | Nothing. No classes, no canvas, no timers, no extra requests |
 | 1 | 1 fragment | Faint background code rain; the brand line flickers now and then |
-| 2 | 2 | Page transitions glitch: RGB split, tearing, `ACCESS GRANTED` lands corrupted |
+| 2 | 2 | Nav transitions glitch: RGB split, tearing, `ACCESS GRANTED` lands corrupted |
 | 3 | 3 | Denser rain, heavier scanlines, brief bursts every 20–45 s (panel split, headings decode) |
 | 4 | 4 | Nav labels and the home typewriter glitch; hunt toasts add `[!] integrity check failed` |
-| 5 | all 5 | Red rain columns, a kernel-panic line in transitions, a `> /root awaits_` link |
-| root | `/root` unlocked | Calmer: slow steady rain, `(root@egt)-[~]#` brand, `ROOT ACCESS` transitions |
+| 5 | all 5 | Red rain columns, a kernel-panic line in the transition output, a `> /root awaits_` link |
+| root | `/root` unlocked | Calmer: slow steady rain, `(root@egt)-[~]#` brand, transitions use the `(root@egt)-[~]#` prompt and `ROOT ACCESS` |
 
 Rules that keep it safe to ship on a portfolio:
 
-- Everything hangs off `<html>` classes (`fx-1` … `fx-5`, `fx-root`) and elements outside `<main>`, so `script.js` is untouched and the SPA swap never orphans anything. Text glitches always restore the exact original.
+- Everything hangs off `<html>` classes (`fx-1` … `fx-5`, `fx-root`) and elements outside `<main>`, so `nav.js`'s `<main>` swap never orphans anything. Transitions are hooked through the `egt:transition` event and `html[data-transition]`. Text glitches always restore the exact original.
 - Content stays readable: the rain is behind `.terminal-container`, and bursts last under half a second.
 - `prefers-reduced-motion` gets a still rain frame and no bursts or tearing.
 - `fsck` in the `/root` shell turns it all off (`fx: 'off'` in `egt.eggs`); `corrupt` turns it back on.
@@ -209,7 +217,7 @@ Pushes deploy through Vercel. Each page includes the Speed Insights script, whic
 
 The project's framework preset is **Other** with no build command, so Vercel serves the repository root as static files, deploys `api/*.js` as Node functions, and runs `middleware.js` on the paths in its `matcher`. `package.json` deliberately has no `build` script; adding one would change that.
 
-`vercel.json` holds a single rewrite so `/root` resolves. The rest of the site deliberately does not use clean URLs: `updateActiveNav()` in `script.js` compares the pathname against names like `about.html`.
+`vercel.json` holds a single rewrite so `/root` resolves. The rest of the site deliberately does not use clean URLs: `updateActiveNav()` in `nav.js` compares the pathname against names like `about.html`.
 
 ## Open items
 
@@ -218,4 +226,4 @@ The project's framework preset is **Other** with no build command, so Vercel ser
 - [ ] **Home page role line.** `index.html` reads `Role: Software Engineer // AI & Financial Systems`. This wording was drafted, not taken from the resume — confirm or replace it.
 - [ ] **`assets/Resume-previous.pdf`.** An untracked local backup of the superseded resume. Decide whether to keep it locally, commit it, or delete it.
 - [ ] **Social links.** `contact.html` has a commented-out Twitter link and a `add better link later on` note.
-- [ ] **Console noise.** `script.js` logs six debug lines on every page load, including the EmailJS public key, which buries the hunt's console banner. Removing them is a separate change to `script.js`.
+- [x] **Console noise.** `script.js` used to log six debug lines on every page load, including the EmailJS public key, which buried the hunt's console banner. They are gone; `tests/MANUAL.md` checks that a page load stays quiet.

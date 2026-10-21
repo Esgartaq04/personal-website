@@ -1,6 +1,6 @@
 // Easter egg hunt: wires hunt/trail.js to the page. Devtools shows the clues (this banner, page
 // source, sys_dump.txt); the playing happens in the site console, opened with ctrl+` (site-console.js).
-// Every listener binds once to document. script.js swaps <main> on navigation and document survives
+// Every listener binds once to document. nav.js swaps <main> on navigation and document survives
 // that swap, so nothing here ever needs re-binding and nothing can fire twice.
 
 import { createStore, safeStorage } from './hunt/state.js'

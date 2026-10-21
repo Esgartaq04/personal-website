@@ -43,24 +43,6 @@ body::before {
   pointer-events: none;
 }
 
-/* Hacker Overlay for Transitions */
-#hack-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: black;
-  z-index: 9000;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  opacity: 0;
-  pointer-events: none;
-  overflow: hidden;
-}
-
 /* NEW: Success Overlay Styles */
 #success-overlay {
   position: fixed;
@@ -92,23 +74,6 @@ body::before {
   text-shadow: 0 0 10px var(--term-green);
   animation: blink 1s infinite;
   text-align: center;
-}
-
-.hack-text {
-  font-family: "Fira Code", monospace;
-  color: var(--term-green);
-  font-size: 14px;
-  width: 90%;
-  word-break: break-all;
-  opacity: 0.8;
-  text-shadow: 0 0 5px var(--term-green);
-}
-
-.access-granted {
-  color: var(--term-green);
-  font-size: 2rem;
-  font-weight: bold;
-  display: none;
 }
 
 /* Layout */
@@ -182,6 +147,96 @@ main::-webkit-scrollbar-track {
 main::-webkit-scrollbar-thumb {
   background: var(--term-dim);
   border: 1px solid var(--term-green);
+}
+
+/* Nav transition prompt (nav.js): floats over the bottom of the pane only while a page change runs, so
+   the layout never moves. */
+.nav-prompt {
+  display: none;
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  bottom: 20px;
+  z-index: 20;
+  padding-top: 8px;
+  background: var(--bg-color);
+  border-top: 1px solid var(--term-dim);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.nav-prompt.show {
+  display: block;
+}
+.nav-ps1 {
+  margin-right: 1ch;
+}
+.nav-cmd {
+  color: #b3ffcc;
+}
+.nav-cursor {
+  display: inline-block;
+  width: 0.6em;
+  height: 1.1em;
+  vertical-align: text-bottom;
+  background: var(--term-green);
+  animation: blink 1s steps(1) infinite;
+}
+.nav-dim {
+  color: var(--term-dim);
+}
+.nav-access {
+  color: var(--term-green);
+  font-weight: 700;
+}
+.nav-alert {
+  color: var(--term-alert);
+}
+/* Back/Forward decrypt (nav.js): one scan line sweeps the pane, and a status flashes by the brand. */
+.nav-scanline {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 25;
+  height: 2px;
+  background: rgba(0, 255, 65, 0.55);
+  pointer-events: none;
+  visibility: hidden;
+}
+.brand-status {
+  font-weight: 400;
+  letter-spacing: 0;
+}
+/* Mid-decrypt, ScrambleText's noise has no spaces. Breaking it anywhere keeps each line in its box
+   instead of running off the right edge and reflowing the page. */
+html[data-transition="decrypt"] main {
+  overflow-wrap: anywhere;
+}
+/* CRT power cycle (nav/crt.js). The head script sets html.power-on before first paint only when the
+   screen will power on. This cover keeps the painted page black until nav/crt.js takes over, and hides
+   itself after 1.2s whatever happens, so a failed script never leaves the page black. */
+html.power-on body::after { content: ""; position: fixed; inset: 0; z-index: 9700; background: #000; animation: crt-fallback 0s linear 1.2s forwards; }
+@keyframes crt-fallback { to { visibility: hidden; } }
+/* All black but for .crt-window: the black is the window's 100vmax box-shadow. The window opens and
+   closes by width and height, never a transform, which would scale the spread with it. The content
+   underneath is only ever covered. --crt-flash drives the pale green flash and the glow around it. */
+#crt {
+  position: fixed;
+  inset: 0;
+  z-index: 9700; /* over everything, the console, toasts and contact overlay included */
+  pointer-events: none;
+  overflow: hidden;
+}
+.crt-window {
+  --crt-flash: 0;
+  position: absolute;
+  inset: 0;
+  margin: auto; /* centred at any width and height */
+  width: 100%;
+  height: 100%;
+  background: rgba(214, 255, 224, var(--crt-flash));
+  box-shadow: 0 0 12px 4px rgba(214, 255, 224, var(--crt-flash)), 0 0 0 100vmax #000;
 }
 
 /* Elements */
@@ -544,10 +599,10 @@ textarea:focus {
   }
 }
 
-/* Stage 2+: the page transition glitches. script.js (via GSAP) sets pointer-events: all inline only
-   while the overlay is up, so the animations run during a transition and never on the idle overlay. */
-.fx-2 #hack-overlay[style*="pointer-events: all"] .hack-text,
-.fx-2 .access-granted {
+/* Stage 2+: the page transition glitches. nav.js sets html[data-transition] only while a transition
+   runs, so the animations play then and never at idle. */
+html.fx-2[data-transition] .nav-prompt,
+html.fx-2[data-transition] main {
   animation: fx-rgb 0.24s steps(2) infinite;
 }
 @keyframes fx-rgb {
@@ -558,10 +613,11 @@ textarea:focus {
     text-shadow: -3px 0 rgba(255, 51, 51, 0.8), 3px 0 rgba(0, 255, 255, 0.6);
   }
 }
-.fx-2 #hack-overlay[style*="pointer-events: all"]::after {
+html.fx-2[data-transition] .terminal-container::after {
   content: "";
   position: absolute;
   inset: 0;
+  z-index: 30; /* over the prompt row (20) as well as the pane */
   pointer-events: none;
   background: repeating-linear-gradient(
     to bottom,
@@ -613,17 +669,7 @@ textarea:focus {
 }
 
 /* Stage 5: breach */
-.fx-5 #hack-overlay[style*="pointer-events: all"]::before {
-  content: "kernel panic - not syncing: VFS: unable to mount /home/esteban";
-  position: absolute;
-  left: 5%;
-  bottom: 8%;
-  color: var(--term-alert);
-  font-size: 12px;
-  opacity: 0.85;
-  animation: blink 1s steps(1) infinite;
-}
-.fx-5 .access-granted {
+.fx-5 .nav-access {
   text-shadow: 0 0 12px var(--term-alert);
 }
 #fx-breach {
@@ -643,27 +689,31 @@ textarea:focus {
   animation: none;
   text-decoration: underline;
 }
+/* It sits over the bottom of the pane, where the transition prompt prints, and would strike through the
+   panic line. Nothing needs it mid-transition, so it steps out of the way. */
+html[data-transition] #fx-breach {
+  visibility: hidden;
+}
 
 /* Rooted: the visitor owns the box. Calm, steady, a little brighter. */
 .fx-root .brand {
   text-shadow: 0 0 6px var(--term-dim);
 }
-.fx-root .access-granted {
+.fx-root .nav-access {
   letter-spacing: 4px;
   text-shadow: 0 0 12px var(--term-green);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .fx #hack-overlay .hack-text,
-  .fx .access-granted,
-  .fx #hack-overlay::before,
-  .fx #hack-overlay::after,
+  html.fx[data-transition] .nav-prompt,
+  html.fx[data-transition] main,
+  html.fx[data-transition] .terminal-container::after,
   .fx-flicker,
   .fx-split,
   #fx-breach {
     animation: none !important;
   }
-  .fx #hack-overlay::after {
+  html.fx[data-transition] .terminal-container::after {
     display: none;
   }
 }
@@ -675,7 +725,7 @@ textarea:focus {
   top: 0;
   left: 0;
   right: 0;
-  z-index: 8000; /* Above the page and rain, below the transition overlay and toasts. */
+  z-index: 8000; /* Above the page and rain, below the contact success overlay and toasts. */
   display: flex;
   height: 45vh;
   min-height: 220px;
