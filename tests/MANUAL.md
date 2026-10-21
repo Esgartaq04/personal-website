@@ -1,6 +1,6 @@
 # Manual checklist
 
-The DOM layer has no automated tests. Walk this list before merging anything that touches `eggs.js`, `lock.js`, `shell.js`, `shell/`, `root.html`, `api/`, `lib/`, `middleware.js`, or the breadcrumbs.
+The DOM layer has no automated tests. Walk this list before merging anything that touches `script.js`, `nav.js`, `nav/`, `eggs.js`, `lock.js`, `shell.js`, `shell/`, `root.html`, `api/`, `lib/`, `middleware.js`, or the breadcrumbs.
 
 Serve with the API and middleware running: `vercel dev`, or `npm run serve` (see the README). `python -m http.server` serves the pages but not `/api`, so secret fragments and the unlock will not work there.
 
@@ -11,13 +11,14 @@ Reset between runs: `localStorage.removeItem('egt.eggs')` in the console, delete
 ## Hunt
 
 - [ ] On a fresh load of any page, the devtools console shows the `SYSTEM NOTICE` box telling you to press `` ctrl+` `` and type `hunt`, and no errors other than the known `/_vercel/speed-insights/script.js` 404.
+- [ ] The console shows no debug lines on any page load, only the `SYSTEM NOTICE` box and the known 404, and the EmailJS keys are never printed.
 - [ ] Before anything is found, no `[n/5]` appears next to the brand line, and there is no `.site-console` element in the page.
 - [ ] `hunt()` in devtools prints only `` > wrong console. press ctrl+` on the page. `` and changes nothing.
 - [ ] A plain backtick does nothing special anywhere. `` Ctrl+` `` drops the site console down with the input focused; `` Ctrl+` `` again or Esc closes it and returns focus.
 - [ ] In the site console, `hunt` prints `[1/5]`, the masked list with slot 1 filled, and a lead about the home page cursor. The brand line now shows `[1/5]`, and a toast reads `FRAGMENT 1/5 ACQUIRED :: "<console fragment>"`. The Network tab shows one `POST /api/fragment`.
 - [ ] Running `hunt` again prints progress without a second toast. Up arrow recalls earlier commands; Tab completes command names.
 - [ ] On the home page, clicking the blinking cursor three times quickly logs the cursor fragment with a toast. Three slow clicks, more than 1.5s apart, do nothing.
-- [ ] Navigate away from home and back using the nav, not a reload. The cursor trigger still works, and fires one toast rather than two. *Needs a real, visible browser tab: the page swap waits on `requestAnimationFrame`.*
+- [ ] Navigate away from home and back using the nav, not a reload. The cursor trigger still works, and fires one toast rather than two.
 - [ ] After that navigation, the brand line still shows the counter, and the site console still has its history.
 - [ ] View source on the about page: the comment above `IDENTITY CONFIRMED` shows `ash_` and `hunt ash_`. Running that in the site console logs fragment 3.
 - [ ] On any page with nothing focused, the Konami code (up up down down left right left right B A) logs the Konami fragment. Holding Shift for B and A still works.
@@ -39,14 +40,51 @@ Seed progress quickly from the console: `localStorage.setItem('egt.eggs', JSON.s
 
 - [ ] Stage 0 (nothing found): `<html>` has no `fx` classes, there is no `#fx-rain` canvas, and the Network tab shows no `/api/session` request.
 - [ ] Stage 1: faint code rain behind the content; text stays readable.
-- [ ] Stage 2: clicking a nav link shows RGB-split matrix text and tearing bars; `ACCESS GRANTED` sometimes appears corrupted, then corrects. The page still swaps.
+- [ ] Stage 2: clicking a nav link glitches the transition prompt and page with an RGB split and tearing bars, only while the prompt is up; `ACCESS GRANTED` sometimes appears corrupted, then corrects. The page still swaps.
 - [ ] Stage 3+: `import('/fx.js').then(fx => fx.runBurst('decode'))` scrambles a heading and restores it exactly; `'split'` jolts the panel.
 - [ ] Stage 4+: `runBurst('nav')` mis-renders one nav label for a moment; on home, `runBurst('typo')` garbles the typewriter line then fixes it. A new find's toast has a red `[!] integrity check failed` line.
-- [ ] Stage 5: some rain columns are red, transitions show the kernel panic line, and `> /root awaits_` sits bottom-left and links to `/root`.
+- [ ] Stage 5: some rain columns are red, the transition output includes a red kernel-panic line, and `> /root awaits_` sits bottom-left and links to `/root`.
 - [ ] Finding a fragment live raises the stage immediately, without a reload.
-- [ ] After unlocking `/root`, other pages show `(root@egt)-[~]#`, slower green-only rain, no breach link, and `ROOT ACCESS` during transitions.
+- [ ] After unlocking `/root`, other pages show `(root@egt)-[~]#` as the brand, slower green-only rain, no breach link; the transition prompt is `(root@egt)-[~]#` and the access line reads `ROOT ACCESS`.
 - [ ] `fsck` in the shell removes every effect at once; it stays off across pages and reloads. `corrupt` brings it back.
+- [ ] After `fsck`, transitions show the normal prompt and `ACCESS GRANTED`, with no glitching.
 - [ ] With reduced motion on (OS setting or devtools rendering emulation): the rain is a still frame, and no bursts, tearing or blinking happen.
+
+## Transitions
+
+- [ ] Click through all five pages. Each shows a typed `cd /<page>` and a `GET` line with real kB and ms (it varies between clicks), then the page wipes in. Takes about 1.2s locally.
+- [ ] Scroll the experience page to the bottom and click `/about`. The prompt shows at the bottom of the pane, the pane doesn't resize, and the reveal is quick.
+- [ ] Click `/about` then `/projects` within half a second. The first transition finishes instantly, then one `/projects` transition runs. There's one prompt and no leftover lines.
+- [ ] Devtools offline, then click a nav link. A red `cd: /<page>: connection reset` line appears, then a full page load is attempted.
+- [ ] Block `cdnjs.cloudflare.com` in devtools and reload. Nav clicks still swap pages instantly, with no console errors from `nav.js`.
+- [ ] Reduced motion (rendering emulation): nav clicks swap instantly, with no prompt.
+- [ ] Start a nav click, then switch tabs at once. Coming back, the new page is in place.
+- [ ] Throttle the network with a custom devtools profile of 9000 ms latency, then click a nav link. After 8s a red `cd: /<page>: connection timed out` line appears, then a full page load is attempted.
+- [ ] Back/Forward after a few nav clicks: no reload (Network shows a `fetch`, not a document load), the whole transition (the old text turning to noise, then the new text decrypting in place) takes 1s or less, and ` :: access granted` flashes by the brand.
+- [ ] Back to `/about`: the DOM still contains the `[recovered fragment]` comment, and project cards, links, and the contact form are intact and work.
+- [ ] Press Back three times quickly. You land on the right page with no doubled or scrambled text left over.
+- [ ] Back to the very first page of the session works; there's no reload loop.
+- [ ] Press Back while a nav click's `cd /<page>` is still typing. The decrypt takes over and you land on the previous page, with no prompt or output lines left over.
+- [ ] Click a nav link for another page while a Back decrypt is running. The decrypt finishes instantly, then one `cd /<page>` transition runs to the clicked page. Clicking the page Back is going to just finishes the decrypt.
+- [ ] Devtools offline, then click `/about` and `/projects` within half a second. The full page load that follows goes to `/projects`, not `/about`.
+- [ ] Ctrl-click (Cmd-click on a Mac) a nav link. The page opens in a new tab, and this tab doesn't transition.
+- [ ] New tab on any page: the screen powers on from a dot within about 0.8s; a key press skips it. Reload: no boot.
+- [ ] Block `cdnjs.cloudflare.com` and open a fresh tab. The page is visible within about 1.2s and is never stuck black.
+- [ ] At stage 5, click `> /root awaits_`. The site collapses to a line, then a dot that fades, and `/root` powers on.
+- [ ] At stage 5, the `> /root awaits_` link is hidden while a nav transition's prompt is up, so it never strikes through the kernel-panic line.
+- [ ] `su root` with the right passphrase: the same power cycle into `/root` (`session restored`).
+- [ ] `exit` in the `/root` shell: the shell powers off and the home page powers on.
+- [ ] During a power-off into `/root` (e.g. after `su root`), press Esc (or the browser's Stop). Within 3s the page is back and is never left black.
+- [ ] Reduced motion: no boot, and `/root` entry and exit navigate instantly.
+- [ ] Open the site in a background tab (middle-click) and switch to it later. There's no boot stuck on screen.
+
+## Contact form
+
+Walk these on `/contact.html`. A real send emails the site owner through EmailJS, so don't let a walk reach EmailJS unless you are the owner and mean it. To walk a path without sending anything, replace the global in the console before you submit (the page calls `emailjs` at submit time, so the stub is the one used): `window.emailjs = { init() {}, sendForm: () => Promise.reject(new Error('stub')) }` for a failed send, or `sendForm: () => Promise.resolve()` for a successful one.
+
+- [ ] Contact form with a bad EmailJS service ID in `config.js` (owner only; restore `config.js` afterwards), or with the rejecting stub: no Pepe overlay, status reads `> TRANSMISSION FAILED. Try again.`, button reads `RETRY`. Submitting again clears the status first, and a later successful send puts the button back to `EXECUTE_SEND`.
+- [ ] Contact form with EmailJS answering OK (the owner's real config sends a real email; the resolving stub sends nothing): Pepe overlay that fades after about 3s, the form is cleared, the button reads `EXECUTE_SEND`, and status reads `> UPLOAD COMPLETE.`
+- [ ] Contact form with no `ENV` (serve a copy of the page without `config.js`) or with the EmailJS script blocked: submitting shows `> ERROR: mail relay offline.`, the button goes back to `EXECUTE_SEND`, no request goes to EmailJS, and no Pepe overlay appears.
 
 ## Shell
 

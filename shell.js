@@ -9,6 +9,7 @@ import { matrixCommand } from './shell/matrix.js'
 import { registerArcade } from './shell/arcade.js'
 import { TREE, displayPath } from './shell/vfs.js'
 import { input, inputLine, output, print, screen, setPrompt } from './term.js'
+import { powerOffTo } from './nav.js'
 
 const store = createStore(safeStorage())
 const ctx = createContext({ tree: TREE, store, now: () => Date.now() })
@@ -90,9 +91,7 @@ function submit(value) {
   if (result.exit || result.navigate) {
     mode = 'exiting'
     inputLine.hidden = true
-    setTimeout(() => {
-      window.location.href = result.navigate || 'index.html'
-    }, 400)
+    powerOffTo(result.navigate || 'index.html') // the screen powers off over the logout line
     return
   }
   setPrompt(promptText())

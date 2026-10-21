@@ -12,7 +12,17 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="style.css" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script>
+      try {
+        var s = sessionStorage, h = document.documentElement, p = s.getItem('egt.poweroff')
+        s.removeItem('egt.poweroff')
+        if (!document.hidden && !matchMedia('(prefers-reduced-motion: reduce)').matches && (p || !s.getItem('egt.booted'))) h.classList.add('power-on')
+        s.setItem('egt.booted', '1')
+      } catch (e) {}
+    </script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.15.0/gsap.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.15.0/ScrambleTextPlugin.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.15.0/CustomEase.min.js"></script>
     <script
       type="text/javascript"
       src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"
@@ -21,7 +31,7 @@
     <!-- LOAD CONFIG FIRST -->
     <script src="config.js"></script>
     <!-- THEN LOAD LOGIC -->
-    <script src="script.js" defer></script>
+    <script type="module" src="script.js"></script>
     <script type="module" src="eggs.js"></script>
     <script>
       window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
@@ -29,12 +39,6 @@
     <script defer src="/_vercel/speed-insights/script.js"></script>
   </head>
   <body>
-    <!-- Standard Hack Overlay (Global) -->
-    <div id="hack-overlay">
-      <div class="hack-text" id="matrix-text"></div>
-      <div class="access-granted" id="access-msg">ACCESS GRANTED</div>
-    </div>
-
     <div class="terminal-container">
       <header>
         <div class="brand">esteban_garcia_taquez@portfolio:~$</div>
@@ -82,7 +86,7 @@
 
           <p>> Or establish direct link:</p>
 
-          <form id="contact-form">
+          <form id="contact-form" method="post">
             <div class="input-group">
               <label for="user_name">root@user:~$ name</label>
               <input
