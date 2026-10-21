@@ -1,16 +1,6 @@
 import { test, assertEqual, assertDeepEqual } from './harness.js'
+import { memoryStorage } from './fakes.js'
 import { STORAGE_KEY, createStore, emptyState, parseState, serializeState } from '../hunt/state.js'
-
-function memoryStorage(initial = {}) {
-  const data = { ...initial }
-  return {
-    getItem: key => (key in data ? data[key] : null),
-    setItem: (key, value) => {
-      data[key] = String(value)
-    },
-    data,
-  }
-}
 
 function throwingStorage() {
   return {

@@ -3,6 +3,7 @@
 // Ticks run on setInterval, not requestAnimationFrame.
 
 import { GLYPHS, TRAIL, createRain, glyphAt, stepRain } from '../hunt/rain.js'
+import { clearTimer as defaultClearTimer, directionKey, setTimer as defaultSetTimer } from './takeover.js'
 
 export { GLYPHS, TRAIL, createRain, glyphAt, stepRain }
 
@@ -27,8 +28,8 @@ export function renderRain(rain) {
 export function startMatrix(host, options = {}) {
   const {
     rng = Math.random,
-    setTimer = (fn, ms) => setInterval(fn, ms),
-    clearTimer = id => clearInterval(id),
+    setTimer = defaultSetTimer,
+    clearTimer = defaultClearTimer,
     width = WIDTH,
     height = HEIGHT,
   } = options
@@ -43,8 +44,7 @@ export function startMatrix(host, options = {}) {
   }, TICK_MS)
 
   host.onKey(key => {
-    const k = typeof key === 'string' ? key.toLowerCase() : ''
-    if (k === 'q' || k === 'escape') end()
+    if (directionKey(key) === 'quit') end()
   })
 
   function end() {

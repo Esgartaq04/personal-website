@@ -17,7 +17,7 @@ registerBuiltins(ctx)
 registerExtras(ctx)
 register(ctx, 'snake', snakeCommand)
 register(ctx, 'matrix', matrixCommand)
-registerArcade(ctx) // After the builtins: it wraps sudo.
+registerArcade(ctx)
 
 // 'shell' | 'takeover' | 'exiting'
 let mode = 'shell'
@@ -28,6 +28,7 @@ let takeoverKeysUp = null
 export function start(lines) {
   input.addEventListener('keydown', onKey)
   input.addEventListener('keyup', onKeyUp)
+  input.addEventListener('blur', onBlur)
   historyIndex = ctx.history.length
   print(lines)
   setPrompt(promptText())
@@ -71,6 +72,12 @@ function onKey(event) {
 // Only games that track held keys (the platformer) ask for releases.
 function onKeyUp(event) {
   if (mode === 'takeover' && takeoverKeysUp) takeoverKeysUp(event.key)
+}
+
+// Keys released after focus leaves the input never reach onKeyUp, so losing focus counts as
+// releasing them all (up(null)). Otherwise a held key would stay down until pressed again.
+function onBlur() {
+  if (mode === 'takeover' && takeoverKeysUp) takeoverKeysUp(null)
 }
 
 function submit(value) {

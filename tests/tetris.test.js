@@ -1,4 +1,5 @@
 import { test, assert, assertEqual, assertDeepEqual } from './harness.js'
+import { fakeHost, fakeTimers } from './fakes.js'
 import { createStore } from '../hunt/state.js'
 import {
   NAMES,
@@ -21,31 +22,6 @@ import {
 } from '../shell/tetris.js'
 
 const zero = () => 0
-
-function fakeHost() {
-  const host = { frames: [], finished: null, keyHandler: null }
-  host.draw = text => host.frames.push(text)
-  host.onKey = handler => {
-    host.keyHandler = handler
-  }
-  host.finish = lines => {
-    host.finished = lines
-  }
-  return host
-}
-
-function fakeTimers() {
-  const timers = { callback: null, intervals: [], cleared: 0 }
-  timers.setTimer = (fn, ms) => {
-    timers.callback = fn
-    timers.intervals.push(ms)
-    return timers.intervals.length
-  }
-  timers.clearTimer = () => {
-    timers.cleared++
-  }
-  return timers
-}
 
 // A game with one piece placed by hand on an empty board.
 function withPiece(name, x = 3, y = 0, rot = 0) {

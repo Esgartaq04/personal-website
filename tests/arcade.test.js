@@ -1,15 +1,11 @@
 import { test, assert, assertEqual, assertDeepEqual } from './harness.js'
+import { memoryStorage } from './fakes.js'
 import { createStore } from '../hunt/state.js'
-import { createContext, execute, helpLines, registerBuiltins } from '../shell/core.js'
+import { complete, createContext, execute, helpLines, registerBuiltins } from '../shell/core.js'
 import { registerExtras } from '../shell/commands.js'
 import { registerArcade } from '../shell/arcade.js'
 import { snakeCommand } from '../shell/snake.js'
 import { ARCADE, TREE, getNode, withArcade } from '../shell/vfs.js'
-
-function memoryStorage() {
-  const data = {}
-  return { getItem: key => (key in data ? data[key] : null), setItem: (key, value) => (data[key] = String(value)) }
-}
 
 // The real shell, wired the way shell.js does it.
 function shell(store = createStore(memoryStorage())) {
@@ -79,7 +75,8 @@ test('arcade: running a path that is not a program answers like bash', () => {
   const ctx = shell()
   assertDeepEqual(run(ctx, './notes.txt'), ['bash: ./notes.txt: Permission denied'])
   assertDeepEqual(run(ctx, './projects'), ['bash: ./projects: Is a directory'])
-  assertDeepEqual(run(ctx, './nothing'), ['bash: ./nothing: command not found'])
+  assertDeepEqual(run(ctx, './nothing'), ['bash: ./nothing: No such file or directory'])
+  assertDeepEqual(run(ctx, '~/arcade/tetris'), ['bash: ~/arcade/tetris: No such file or directory'])
 })
 
 test('arcade: ls -l marks the programs executable', () => {
@@ -101,4 +98,28 @@ test('arcade: the hints point at it', () => {
   const ctx = shell()
   assert(run(ctx, 'cat /etc/sudoers').some(line => line.includes('NOPASSWD: 42')))
   assert(run(ctx, 'cat ~/.secret').some(line => line.includes('sudo')))
+})
+
+test('arcade: sudo 42 works whichever is registered first', () => {
+  const ctx = createContext({ tree: TREE, store: createStore(memoryStorage()) })
+  registerArcade(ctx)
+  registerBuiltins(ctx)
+  assertDeepEqual(run(ctx, 'sudo 41'), [NOT_SUDOER])
+  assert(run(ctx, 'sudo 42').some(line => line.includes('access granted')))
+})
+
+test('arcade: another command named tetris does not count as the unlock', () => {
+  const ctx = shell()
+  ctx.registry.set('tetris', snakeCommand)
+  assert(run(ctx, 'sudo 42').some(line => line.includes('access granted')))
+  assert(run(ctx, 'ls ~')[0].includes('arcade/'))
+})
+
+test('arcade: tab completes programs by path', () => {
+  const ctx = shell()
+  run(ctx, 'sudo 42')
+  run(ctx, 'cd ~/arcade')
+  assertEqual(complete(ctx, './te').line, './tetris ')
+  assertEqual(complete(ctx, '~/arcade/pl').line, '~/arcade/platformer ')
+  assertEqual(complete(ctx, 'tet').line, 'tetris ')
 })

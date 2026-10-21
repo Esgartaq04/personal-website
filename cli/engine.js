@@ -81,13 +81,15 @@ export function execute(ctx, line) {
 }
 
 // Completes the last whitespace-separated word: a command name in first position, otherwise whatever
-// argCandidates(ctx, partial) offers (the shell passes filesystem paths). Works on raw text rather than
-// tokens, so a quote in the line cannot throw off where the word starts.
+// argCandidates(ctx, partial) offers (the shell passes filesystem paths). A first word with a slash is
+// a path too, since resolveCommand can run it (./tetris). Works on raw text rather than tokens, so a
+// quote in the line cannot throw off where the word starts.
 export function complete(ctx, line, argCandidates = () => []) {
   const start = line.search(/\S*$/)
   const prefix = line.slice(0, start)
   const partial = line.slice(start)
-  const candidates = prefix.trim() === '' ? commandCandidates(ctx, partial) : argCandidates(ctx, partial)
+  const isCommand = prefix.trim() === '' && !partial.includes('/')
+  const candidates = isCommand ? commandCandidates(ctx, partial) : argCandidates(ctx, partial)
   if (candidates.length === 0) return { line, options: [] }
   if (candidates.length === 1) {
     const only = candidates[0]

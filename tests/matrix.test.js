@@ -1,30 +1,6 @@
 import { test, assert, assertEqual } from './harness.js'
+import { fakeHost, fakeTimers } from './fakes.js'
 import { GLYPHS, TRAIL, createRain, glyphAt, matrixCommand, renderRain, startMatrix, stepRain } from '../shell/matrix.js'
-
-function fakeHost() {
-  const host = { frames: [], finished: null, finishCount: 0, keyHandler: null }
-  host.draw = text => host.frames.push(text)
-  host.onKey = handler => {
-    host.keyHandler = handler
-  }
-  host.finish = lines => {
-    host.finished = lines
-    host.finishCount++
-  }
-  return host
-}
-
-function fakeTimers() {
-  const timers = { callback: null, cleared: false }
-  timers.setTimer = fn => {
-    timers.callback = fn
-    return 1
-  }
-  timers.clearTimer = () => {
-    timers.cleared = true
-  }
-  return timers
-}
 
 test('matrix: createRain gives every column a drop above or at the top', () => {
   const rain = createRain(8, 5, () => 0.5)

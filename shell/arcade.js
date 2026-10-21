@@ -7,21 +7,19 @@ import { ARCADE_DIR, displayPath, withArcade } from './vfs.js'
 import { platformerCommand } from './platformer.js'
 import { tetrisCommand } from './tetris.js'
 
+// Answers `sudo 42` through the builtin sudo's ctx.sudo hook, so the order of registration does not matter.
 export function registerArcade(ctx) {
-  const sudo = ctx.registry.get('sudo')
-  register(ctx, 'sudo', {
-    ...sudo,
-    run: (args, c) => (args.length === 1 && args[0] === '42' ? sudo42(c) : sudo.run(args, c)),
-  })
+  ctx.sudo = (args, c) => (args.length === 1 && args[0] === '42' ? sudo42(c) : undefined)
   if (ctx.store && ctx.store.get().arcade) unlockArcade(ctx)
 }
 
 export function isUnlocked(ctx) {
-  return ctx.registry.has('tetris')
+  return ctx.arcade === true
 }
 
 export function unlockArcade(ctx) {
   if (!isUnlocked(ctx)) {
+    ctx.arcade = true
     ctx.tree = withArcade(ctx.tree)
     register(ctx, 'tetris', tetrisCommand)
     register(ctx, 'platformer', platformerCommand)
