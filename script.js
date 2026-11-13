@@ -60,7 +60,9 @@ function initPageScripts() {
           // Last, so the form is already back to normal even if the overlay can't run (GSAP blocked).
           showSuccessOverlay()
         },
-        () => {
+        (err) => {
+          // Surface the real reason (e.g. an expired Gmail grant) for whoever opens the console.
+          console.error('EmailJS send failed:', err?.status, err?.text ?? err)
           status.innerText = '> TRANSMISSION FAILED. Try again.'
           btn.innerText = 'RETRY'
         },
